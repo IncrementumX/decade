@@ -91,10 +91,10 @@ input[name=ftab]{position:absolute;opacity:0;pointer-events:none}
 
 /* ---- statements ---- */
 .stmt{display:flex;gap:16px;background:#ffffff;border:1px solid #dde4ec;border-radius:13px;padding:18px 20px;margin:2px 0 4px}
-.stmt-1{border-left:4px solid #2563c9}.stmt-2{border-left:4px solid #157346}.stmt-3{border-left:4px solid #6b4fae}
+.stmt-1{border-left:4px solid #2563c9}.stmt-2{border-left:4px solid #157346}.stmt-3{border-left:4px solid #2563c9}
 .stmt-n{font-size:34px;font-weight:800;color:#dde4ec;line-height:1;letter-spacing:-.03em}
 .stmt-body{flex:1}
-.stmt-body p{font-size:14.5px;color:#1b2430;line-height:1.65}
+.stmt-body p{font-size:14.5px;color:#1b2430;line-height:1.65}.stmt-3 .stmt-body>p{margin:0 0 11px}
 .pull{margin-top:12px;font-size:15px;color:#1b2430;font-style:italic;border-left:3px solid #916200;
  background:#916200BG;padding:10px 14px;border-radius:0 8px 8px 0}
 .pull-a{display:block;font-style:normal;font-size:11.5px;color:#5d6b7d;font-weight:600;margin-top:5px}
