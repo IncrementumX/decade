@@ -539,3 +539,4 @@ body.editing .edbar .ed-hint{display:inline;font-size:11px;color:#5d6b7d;backgro
 .doc-btn{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#5d6b7d;background:#fff;border:1px solid #dde4ec;border-radius:6px;padding:6px 13px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.07);transition:color .12s,border-color .12s;font-family:inherit}
 .doc-btn:hover{color:#2563c9;border-color:#2563c9}
 @media print{.tabbar,.mast,.doc-ctrls{display:none!important}body{background:#fff!important}}
+.cvalall{font:600 7px "Segoe UI",system-ui,sans-serif;fill:#1b2430}.cb-zoom{flex:0 0 auto;font-size:14px;line-height:1;color:#5d6b7d;background:#f1f5fa;border:1px solid #dde4ec;border-radius:6px;padding:3px 7px;cursor:pointer}.cb-zoom:hover{color:#1b2430;background:#e8eff8}
