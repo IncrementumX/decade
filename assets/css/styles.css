@@ -102,6 +102,7 @@ input[name=ftab]{position:absolute;opacity:0;pointer-events:none}
 /* ---- headline table / generic md tables ---- */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid #dde4ec;border-radius:10px;margin:8px 0}
 .mtable{width:100%;border-collapse:collapse;font-size:12.5px;background:#ffffff;min-width:560px}
+.ls-dash .mtable{min-width:0}.ls-dash .tbl-wrap{overflow-x:visible}.ls-dash .mtable th,.ls-dash .mtable td{padding-left:8px;padding-right:8px}
 .mtable th{background:#fbfcfe;text-align:left;padding:9px 12px;font-size:10.5px;letter-spacing:.05em;
  text-transform:uppercase;color:#93a0b0;font-weight:700;border-bottom:1.5px solid #dde4ec;vertical-align:bottom}
 .th-sub{font-size:8.5px;letter-spacing:0;text-transform:none}

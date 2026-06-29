@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brazil Rolling-Returns Explorer — Frontier Case</title>
+<meta name="description" content="Interactive rolling win-rate and excess-return explorer for Brazilian benchmarks, 2004-2026. Self-contained.">
+<style>
+:root{
+  --cream:#f7f9fb; --paper:#ffffff; --ink:#1b2430; --muted:#5d6b7d; --faint:#93a0b0;
+  --line:#dde4ec; --chip:#eef2f6; --accent:#2563c9; --accentd:#1b4ea0;
+  --green:#157346; --amber:#916200; --red:#c82c3e; --violet:#6b4fae; --teal:#0f7d8c;
+  --greenbg:#e7f1ec; --amberbg:#f4eede; --redbg:#f7e6e8; --accentbg:#e8eff8;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--cream);color:var(--ink);
+  font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  font-size:13.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.01em}
+
+/* ---------- masthead ---------- */
+.mast{border-bottom:1px solid var(--line);background:var(--paper)}
+.mast-in{max-width:1080px;margin:0 auto;padding:22px 22px 18px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.mast h1{font-size:29px;font-weight:800;letter-spacing:-.022em;margin:7px 0 6px;line-height:1.08}
+.mast .sub{font-size:13.5px;color:var(--muted);max-width:760px}
+.mast .meta{margin-top:11px;display:flex;flex-wrap:wrap;gap:7px}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:20px;
+  background:var(--chip);color:var(--muted)}
+.tag.live{background:var(--accentbg);color:var(--accentd)}
+
+/* ---------- CSS-only tabs (JS-off floor) ---------- */
+.tabset{margin-top:0}
+.tabset > input[type=radio]{position:absolute;opacity:0;pointer-events:none}
+.tabbar{display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border-bottom:1px solid var(--line);background:var(--paper);
+  padding:0 22px;scrollbar-width:thin;position:sticky;top:0;z-index:5}
+.tabbar-in{display:flex;gap:2px;max-width:1080px;margin:0 auto;width:100%}
+.tablab{flex:0 0 auto;min-height:46px;display:flex;align-items:center;padding:0 16px;
+  font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;
+  border-bottom:2.5px solid transparent;touch-action:manipulation;white-space:nowrap;user-select:none}
+.tablab:hover{color:var(--ink)}
+.panel{display:none;padding:24px 0 56px}
+#t-explore:checked ~ .tabbar .lab-explore,
+#t-method:checked  ~ .tabbar .lab-method,
+#t-data:checked    ~ .tabbar .lab-data{color:var(--ink);border-bottom-color:var(--accent)}
+#t-explore:checked ~ .body .p-explore,
+#t-method:checked  ~ .body .p-method,
+#t-data:checked    ~ .body .p-data{display:block}
+
+/* ---------- controls ---------- */
+.controls{background:var(--paper);border:1px solid var(--line);border-radius:13px;
+  padding:16px 16px 14px;margin-bottom:18px}
+.ctl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:13px}
+.ctl{display:flex;flex-direction:column;gap:5px}
+.ctl label{font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.ctl select,.ctl input[type=month]{font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);
+  background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:9px 10px;min-height:42px;
+  -webkit-appearance:none;appearance:none}
+.ctl select:focus,.ctl input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--cream)}
+.seg button{flex:1;min-height:42px;border:0;background:transparent;font-family:inherit;font-size:12.5px;
+  font-weight:700;color:var(--muted);cursor:pointer;padding:0 4px;touch-action:manipulation}
+.seg button[aria-pressed=true]{background:var(--accent);color:#fff}
+.seg button:not([aria-pressed=true]):hover{background:var(--chip);color:var(--ink)}
+.ctl-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px;align-items:center}
+.btn{font-family:inherit;font-size:12px;font-weight:700;border-radius:8px;padding:9px 14px;min-height:40px;
+  cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--ink);touch-action:manipulation}
+.btn:hover{border-color:var(--accent);color:var(--accentd)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn-primary:hover{background:var(--accentd);color:#fff}
+.swap{background:var(--chip);border-color:var(--line)}
+.nojs-note{font-size:11px;color:var(--amber);background:var(--amberbg);border-radius:6px;padding:6px 10px;margin-top:10px;display:none}
+
+/* ---------- verdict card (signature) ---------- */
+.verdict{background:var(--paper);border:1px solid var(--line);border-radius:13px;overflow:hidden;margin-bottom:16px}
+.verdict-top{padding:18px 20px 16px;border-bottom:1px solid var(--line)}
+.vd-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+.vd-headline{font-size:15.5px;font-weight:600;color:var(--ink);line-height:1.45}
+.vd-headline b{font-weight:800}
+.vd-big{font-size:46px;font-weight:800;letter-spacing:-.03em;line-height:1;margin:14px 0 4px}
+.vd-big .unit{font-size:20px;font-weight:700;color:var(--muted);margin-left:3px}
+.vd-sub{font-size:12px;color:var(--muted)}
+.winbar-wrap{margin:12px 0 2px;max-width:340px}
+.vd-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:0;
+  border-top:1px solid var(--line)}
+.vstat{padding:13px 16px;border-right:1px solid var(--line)}
+.vstat:last-child{border-right:0}
+.vstat .k{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.vstat .v{font-size:20px;font-weight:800;letter-spacing:-.02em;margin-top:3px}
+.pos{color:var(--green)} .neg{color:var(--red)} .neu{color:var(--ink)}
+
+/* ---------- chart frames ---------- */
+.chartbox{background:var(--paper);border:1px solid var(--line);border-radius:13px;padding:16px 18px;margin-bottom:16px}
+.chartbox h3{font-size:13.5px;font-weight:700;margin-bottom:3px}
+.chartbox .read{font-size:12px;color:var(--muted);margin:2px 0 12px;max-width:760px}
+.chartbox .src{font-size:11px;color:var(--faint);margin-top:9px;font-weight:600}
+.chart{width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:9px}
+.legend span{font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px}
+.legend i{width:11px;height:11px;border-radius:2px;display:inline-block}
+
+/* ---------- caveat band (always visible) ---------- */
+.caveat{display:flex;gap:11px;align-items:flex-start;background:var(--amberbg);
+  border:1px solid #e6d9b8;border-radius:11px;padding:13px 15px;margin-bottom:18px}
+.caveat .ic{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--amber);color:#fff;
+  font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.caveat .tx{font-size:12px;color:#5e4b1f;line-height:1.55}
+.caveat b{color:#3d3010}
+
+/* ---------- prose / method ---------- */
+.prose{max-width:820px}
+.prose p{margin:0 0 13px;color:var(--ink)}
+.prose h3{font-size:15px;margin:22px 0 8px}
+.prose ul{margin:0 0 13px;padding-left:20px}
+.prose li{margin-bottom:6px;color:var(--ink)}
+.k-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:6px 0 8px}
+.k-card{background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:10px;padding:13px 15px}
+.k-card.green{border-left-color:var(--green)}
+.k-card.amber{border-left-color:var(--amber)}
+.k-card .kh{font-size:12.5px;font-weight:800;margin-bottom:4px}
+.k-card .kb{font-size:12px;color:var(--muted)}
+
+/* ---------- data table ---------- */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:12px}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;font-weight:700}
+thead th{background:var(--chip);font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--muted);position:sticky;top:0}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--cream)}
+
+footer{border-top:1px solid var(--line);padding:20px 0 40px;color:var(--faint);font-size:11px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+
+@media (max-width:640px){
+  .mast h1{font-size:23px}
+  .vd-big{font-size:38px}
+  .wrap{padding:0 15px}
+  .mast-in{padding:18px 15px 15px}
+  .tabbar{padding:0 15px}
+}
+@media print{.controls,.ctl-actions,footer{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.hist-bar{transition:opacity .12s}
+.mast{display:none}.tabbar{top:0}</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-in">
+    <div class="eyebrow">Frontier Case · Brazil Investment Landscape</div>
+    <h1>Rolling-Returns Explorer</h1>
+    <p class="sub">Pick two assets and a holding period. The tool counts, across every rolling window
+    since your start date, in how many of them asset&nbsp;A actually beat asset&nbsp;B — and shows the
+    full distribution of the gap. Built on 269 months of Brazilian benchmark data, 2004–2026.</p>
+    <div class="meta">
+      <span class="tag live">269 monthly observations</span>
+      <span class="tag">2004-01 → 2026-05</span>
+      <span class="tag">Nominal · Real (IPCA) · USD</span>
+      <span class="tag">Self-contained · works offline</span>
+    </div>
+  </div>
+</header>
+
+<div class="tabset">
+  <input type="radio" name="tab" id="t-explore" checked>
+  <input type="radio" name="tab" id="t-method">
+  <input type="radio" name="tab" id="t-data">
+
+  <nav class="tabbar" aria-label="Sections">
+    <div class="tabbar-in">
+      <label class="tablab lab-explore" for="t-explore">Explore</label>
+      <label class="tablab lab-method" for="t-method">How to read it</label>
+      <label class="tablab lab-data" for="t-data">Data &amp; sources</label>
+    </div>
+  </nav>
+
+  <div class="body">
+  <!-- ============ EXPLORE ============ -->
+  <section class="panel p-explore">
+    <div class="wrap">
+
+      <form class="controls" id="controls" onsubmit="return false">
+        <div class="ctl-grid">
+          <div class="ctl">
+            <label for="assetA">Asset A</label>
+            <select id="assetA"></select>
+          </div>
+          <div class="ctl">
+            <label for="assetB">Compare against (B)</label>
+            <select id="assetB"></select>
+          </div>
+          <div class="ctl">
+            <label for="space">Return space</label>
+            <select id="space">
+              <option value="nominal">Nominal BRL</option>
+              <option value="real">Real (IPCA-deflated)</option>
+              <option value="usd">USD (PTAX)</option>
+            </select>
+          </div>
+          <div class="ctl">
+            <label for="start">Sample starts</label>
+            <input type="month" id="start" min="2004-01" max="2025-05" value="2004-01">
+          </div>
+        </div>
+        <div class="ctl" style="margin-top:13px">
+          <label>Holding period (rolling window)</label>
+          <div class="seg" id="horizon" role="group" aria-label="Holding period">
+            <button type="button" data-h="1">1 year</button>
+            <button type="button" data-h="3">3 years</button>
+            <button type="button" data-h="5">5 years</button>
+            <button type="button" data-h="10" aria-pressed="true">10 years</button>
+          </div>
+        </div>
+        <div class="ctl-actions">
+          <button type="button" class="btn swap" id="swap" title="Swap A and B">&#8646; Swap A / B</button>
+          <button type="button" class="btn" id="export-csv">Download data (CSV)</button>
+          <button type="button" class="btn btn-primary" id="export-html">Export this view (HTML)</button>
+        </div>
+        <div class="nojs-note" id="nojs">Interactivity needs JavaScript. The view below is the
+          default matchup (IBOV vs CDI, 10-year windows, nominal) computed from the embedded data.</div>
+      </form>
+
+      <!-- VERDICT CARD (signature) -->
+      <div class="verdict" id="verdict">
+        <div class="verdict-top">
+          <div class="vd-eyebrow" id="vd-eyebrow">Matchup verdict · 10-year windows · nominal BRL</div>
+          <div class="vd-headline" id="vd-headline">
+            <b>IBOV</b> beat <b>CDI</b> in only</div>
+          <div class="vd-big" id="vd-big">16.0<span class="unit">%</span></div>
+          <div class="vd-sub" id="vd-sub">of 150 rolling 10-year windows since Jan&nbsp;2004 — the
+            Brazilian equity hurdle. Cash compounded faster than the index more than four times out of five.</div>
+          <div class="winbar-wrap" id="winbar"><svg viewBox="0 0 300 18" width="100%" preserveAspectRatio="none" role="img" aria-label="Win rate 16.0 percent"><rect x="0" y="0" width="300" height="18" rx="4" fill="#eef2f6"/><rect x="0" y="0" width="48.0" height="18" rx="4" fill="#c82c3e"/></svg></div>
+        </div>
+        <div class="vd-grid" id="vd-stats">
+          <div class="vstat"><div class="k">Mean excess (A−B)</div><div class="v neg" id="st-mean">−3.28%<span style="font-size:11px;color:var(--faint)">/yr</span></div></div>
+          <div class="vstat"><div class="k">Median excess</div><div class="v neg" id="st-median">−2.87%<span style="font-size:11px;color:var(--faint)">/yr</span></div></div>
+          <div class="vstat"><div class="k">Worst window</div><div class="v neg" id="st-worst">−10.52%<span style="font-size:11px;color:var(--faint)">/yr</span></div></div>
+          <div class="vstat"><div class="k">Best window</div><div class="v pos" id="st-best">+6.85%<span style="font-size:11px;color:var(--faint)">/yr</span></div></div>
+          <div class="vstat"><div class="k">Windows (n)</div><div class="v neu" id="st-n">150</div></div>
+        </div>
+      </div>
+
+      <!-- CAVEAT (always visible) -->
+      <div class="caveat">
+        <div class="ic">!</div>
+        <div class="tx"><b>Overlapping, in-sample windows.</b> Rolling windows that start one month apart
+        share almost all of their data, so they are <b>not independent observations</b> — a 10-year
+        win-rate rests on only ~12 genuinely non-overlapping periods. Win-rates describe what happened
+        across 2004–2026, not a probability for the future. Treat them as the historical hurdle, not a forecast.</div>
+      </div>
+
+      <!-- HISTOGRAM -->
+      <div class="chartbox">
+        <h3 id="hist-title">Distribution of the excess return (A − B)</h3>
+        <p class="read" id="hist-read">Each bar counts the rolling windows whose annualized
+        A&minus;B gap fell in that range. Bars left of zero are windows where A lost; bars right of zero,
+        windows where A won.</p>
+        <div class="legend" id="hist-legend">
+          <span><i style="background:var(--red)"></i> A underperformed (excess &lt; 0)</span>
+          <span><i style="background:var(--green)"></i> A outperformed (excess &gt; 0)</span>
+        </div>
+        <div class="chart" id="hist"><svg viewBox="0 0 560 230" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Histogram of IBOV minus CDI annualized excess over 10-year rolling windows"><line x1="38" y1="196" x2="546" y2="196" stroke="#dde4ec"/><rect x="39.5" y="175.5" width="36.1" height="20.5" rx="1.5" fill="#c82c3e" opacity="0.82"/><text x="57.5" y="172.5" text-anchor="middle" font-size="8.5" fill="#5d6b7d">3</text><rect x="78.6" y="120.7" width="36.1" height="75.3" rx="1.5" fill="#c82c3e" opacity="0.82"/><text x="96.6" y="117.7" text-anchor="middle" font-size="8.5" fill="#5d6b7d">11</text><rect x="117.7" y="65.9" width="36.1" height="130.1" rx="1.5" fill="#c82c3e" opacity="0.82"/><text x="135.7" y="62.9" text-anchor="middle" font-size="8.5" fill="#5d6b7d">19</text><rect x="156.7" y="127.5" width="36.1" height="68.5" rx="1.5" fill="#c82c3e" opacity="0.82"/><text x="174.8" y="124.5" text-anchor="middle" font-size="8.5" fill="#5d6b7d">10</text><rect x="195.8" y="100.2" width="36.1" height="95.8" rx="1.5" fill="#c82c3e" opacity="0.82"/><text x="213.8" y="97.2" text-anchor="middle" font-size="8.5" fill="#5d6b7d">14</text><rect x="234.9" y="45.4" width="36.1" height="150.6" rx="1.5" fill="#c82c3e" opacity="0.82"/><text x="252.9" y="42.4" text-anchor="middle" font-size="8.5" fill="#5d6b7d">22</text><rect x="274.0" y="18.0" width="36.1" height="178.0" rx="1.5" fill="#c82c3e" opacity="0.82"/><text x="292.0" y="15.0" text-anchor="middle" font-size="8.5" fill="#5d6b7d">26</text><rect x="313.0" y="31.7" width="36.1" height="164.3" rx="1.5" fill="#c82c3e" opacity="0.82"/><text x="331.1" y="28.7" text-anchor="middle" font-size="8.5" fill="#5d6b7d">24</text><rect x="352.1" y="120.7" width="36.1" height="75.3" rx="1.5" fill="#157346" opacity="0.82"/><text x="370.2" y="117.7" text-anchor="middle" font-size="8.5" fill="#5d6b7d">11</text><rect x="391.2" y="189.2" width="36.1" height="6.8" rx="1.5" fill="#157346" opacity="0.82"/><text x="409.2" y="186.2" text-anchor="middle" font-size="8.5" fill="#5d6b7d">1</text><rect x="430.3" y="168.6" width="36.1" height="27.4" rx="1.5" fill="#157346" opacity="0.82"/><text x="448.3" y="165.6" text-anchor="middle" font-size="8.5" fill="#5d6b7d">4</text><rect x="469.3" y="175.5" width="36.1" height="20.5" rx="1.5" fill="#157346" opacity="0.82"/><text x="487.4" y="172.5" text-anchor="middle" font-size="8.5" fill="#5d6b7d">3</text><rect x="508.4" y="182.3" width="36.1" height="13.7" rx="1.5" fill="#157346" opacity="0.82"/><text x="526.5" y="179.3" text-anchor="middle" font-size="8.5" fill="#5d6b7d">2</text><line x1="348.4" y1="18" x2="348.4" y2="196" stroke="#1b2430" stroke-width="1" stroke-dasharray="3 3"/><text x="348.4" y="12" text-anchor="middle" font-size="9" font-weight="700" fill="#1b2430">0</text><text x="38.0" y="211.0" text-anchor="middle" font-size="8.5" fill="#93a0b0">-11</text><text x="155.2" y="211.0" text-anchor="middle" font-size="8.5" fill="#93a0b0">-7</text><text x="272.5" y="211.0" text-anchor="middle" font-size="8.5" fill="#93a0b0">-3</text><text x="389.7" y="211.0" text-anchor="middle" font-size="8.5" fill="#93a0b0">+1</text><text x="506.9" y="211.0" text-anchor="middle" font-size="8.5" fill="#93a0b0">+6</text><text x="292.0" y="226" text-anchor="middle" font-size="9" fill="#5d6b7d">Annualized excess CAGR, IBOV − CDI (% / yr)</text></svg></div>
+        <div class="src" id="hist-src">Source: benchmarks_monthly.csv + macro_monthly.csv (BCB/ANBIMA/B3), computed in-browser.</div>
+      </div>
+
+      <!-- WIN-RATE BY HORIZON -->
+      <div class="chartbox">
+        <h3>Win-rate by holding period</h3>
+        <p class="read">How the same A-vs-B win-rate changes as you lengthen the holding period — the
+        single clearest test of whether time on the trade closes the gap.</p>
+        <div class="chart" id="horizon-chart"><svg viewBox="0 0 560 150" width="100%"><text x="280" y="75" text-anchor="middle" font-size="12" fill="#93a0b0">Enable JavaScript to compute the horizon ladder.</text></svg></div>
+        <div class="src">Source: same panel; win-rate recomputed at 1Y / 3Y / 5Y / 10Y for the current pair and space.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ METHOD ============ -->
+  <section class="panel p-method">
+    <div class="wrap prose">
+      <h3>What this tool measures</h3>
+      <p>For a holding period H (1, 3, 5 or 10 years) the tool slides an H-year window one month at a
+      time from your start date to the most recent complete window. In each window it compounds the
+      monthly returns of asset&nbsp;A and asset&nbsp;B, then asks a single question: <b>did A end ahead of B?</b>
+      The <b>win-rate</b> is the share of windows where the answer is yes. The <b>excess</b> is A&rsquo;s
+      annualized compound return minus B&rsquo;s, in percentage points per year.</p>
+
+      <div class="k-list">
+        <div class="k-card"><div class="kh">Win-rate</div><div class="kb">Windows where A &gt; B, as a % of all valid windows. The headline.</div></div>
+        <div class="k-card"><div class="kh">Excess (A − B)</div><div class="kb">Annualized CAGR gap. Its mean, median, worst and best frame the dispersion the win-rate hides.</div></div>
+        <div class="k-card amber"><div class="kh">n (windows)</div><div class="kb">Count of valid windows. Falls as H grows — and they overlap heavily.</div></div>
+      </div>
+
+      <h3>Nominal, real, or USD</h3>
+      <p>The toggle re-expresses every monthly return before the windows are built:</p>
+      <ul>
+        <li><b>Nominal BRL</b> — the series as reported.</li>
+        <li><b>Real (IPCA)</b> — each monthly return is deflated by that month&rsquo;s IPCA, so the
+        comparison is in purchasing-power terms. IPCA itself is available as an asset, so &ldquo;beat IPCA&rdquo;
+        means delivered a positive real return.</li>
+        <li><b>USD (PTAX)</b> — BRL total return is converted at the end-of-month PTAX rate, so the gap
+        absorbs currency moves. USD/BRL is available as an asset to isolate how much of the local return the currency took back.</li>
+      </ul>
+
+      <h3>Why the caveat matters</h3>
+      <p>Rolling windows one month apart share 119 of their 120 months, so a string of &ldquo;wins&rdquo; can
+      come from one lucky decade counted many times. Over 10-year horizons there are only about twelve
+      genuinely independent windows in this sample. The win-rates are an honest description of
+      2004&ndash;2026; they are not a probability statement about the next decade. They are kept visible on
+      every view for that reason.</p>
+
+      <h3>How to read the equity result</h3>
+      <p>The default matchup &mdash; IBOV vs CDI over 10 years &mdash; is the case in one number: Brazilian
+      equity beat cash in only 16% of rolling decades, because a CDI compounding near double digits is a
+      punishing hurdle. Switch B to IPCA and the equity picture improves; switch A to IMA-B and the
+      inflation-linked bond clears CDI in essentially every 10-year window. That asymmetry is the
+      backbone of the tax-exempt case.</p>
+    </div>
+  </section>
+
+  <!-- ============ DATA ============ -->
+  <section class="panel p-data">
+    <div class="wrap">
+      <div class="chartbox">
+        <h3>Embedded dataset</h3>
+        <p class="read">The full monthly panel is embedded in this file as inline JSON &mdash; no network,
+        no external dependency. These are the source series and their coverage in the 2004-01 → 2026-05 window.</p>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Series</th><th>What it is</th><th>Unit</th><th>Months</th></tr></thead>
+            <tbody id="data-rows"></tbody>
+          </table>
+        </div>
+        <div class="src">Sources: ANBIMA (IMA-B family, IFIX, CDI), B3/BCB (IBOV, IPCA, USD-BRL PTAX),
+        Yahoo/FRED (S&amp;P 500 TR, NDX). Panel = 269 months; nulls preserved where a series starts later.</div>
+      </div>
+      <div class="caveat" style="background:var(--accentbg);border-color:#cdddf5">
+        <div class="ic" style="background:var(--accent)">i</div>
+        <div class="tx" style="color:#234">
+          <b>Known data note.</b> The IMA-B family begins 2004-05 and IFIX 2011-01, so windows that need
+          earlier months for those series are dropped (reflected in n). <b>NDX is a price index, not total
+          return</b> (≈0.7%/yr dividend gap); S&amp;P 500 is genuine total return. US series are nominal USD
+          only. CDI is ANBIMA&rsquo;s series and reconciles to BCB SGS 4389 (same series).
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--faint);margin-top:14px">
+        Panel content hash (SHA-256, canonical): <code style="font-size:10.5px;word-break:break-all">1bf9bc831c90a3e045b54f7f443abd9a31487d28e1db7d2e797f3e4de7708f74</code>
+      </p>
+    </div>
+  </section>
+  </div><!-- /body -->
+</div><!-- /tabset -->
+
+<footer>
+  <div class="wrap">
+    <span>Frontier Tax-Exempt Case · Brazil Investment Landscape · A-I1 rolling-returns explorer</span>
+    <span>Self-contained HTML · v1 · data 2004-01 → 2026-05</span>
+  </div>
+</footer>
+
+<script id="PANEL" type="application/json">{"meta":{"window":["2004-01","2026-05"],"n_months":269,"coverage":{"CDI":269,"IMAB":265,"IMAB5":265,"IMAB5P":265,"IBOV":269,"IFIX":185,"IPCA":269,"USDBRL":269,"SP500TR":268,"NDX":268},"note":"monthly % returns (nominal BRL) for CDI/IMA-B/IMA-B5/IMA-B5+/IBOV/IFIX; IPCA monthly % infl; USDBRL end-of-month level; SP500TR/NDX monthly % USD. Source: 03_clean_data/benchmarks_monthly.csv + macro_monthly.csv + excel_build/round2/us_benchmarks_monthly.csv. Nulls preserved."},"rows":[{"m":"2004-01","CDI":1.2605733769261107,"IMAB":null,"IMAB5":null,"IMAB5P":null,"IBOV":-1.731427,"IFIX":null,"IPCA":0.76,"USDBRL":2.9409,"SP500TR":null,"NDX":null},{"m":"2004-02","CDI":1.079637084871865,"IMAB":null,"IMAB5":null,"IMAB5P":null,"IBOV":-0.439339,"IFIX":null,"IPCA":0.61,"USDBRL":2.9138,"SP500TR":1.38982,"NDX":-1.520344},{"m":"2004-03","CDI":1.3744122113807933,"IMAB":null,"IMAB5":null,"IMAB5P":null,"IBOV":1.778901,"IFIX":null,"IPCA":0.47,"USDBRL":2.9086,"SP500TR":-1.508618,"NDX":-2.174266},{"m":"2004-04","CDI":1.1746787431638595,"IMAB":null,"IMAB5":null,"IMAB5P":null,"IBOV":-11.44883,"IFIX":null,"IPCA":0.37,"USDBRL":2.9447,"SP500TR":-1.569905,"NDX":-2.575764},{"m":"2004-05","CDI":1.2248546985275555,"IMAB":-0.3713524522656608,"IMAB5":0.6917319601425831,"IMAB5P":-0.6166160882639771,"IBOV":-0.321314,"IFIX":null,"IPCA":0.51,"USDBRL":3.1291,"SP500TR":1.372108,"NDX":4.62836},{"m":"2004-06","CDI":1.2235709087390578,"IMAB":1.3758039855596982,"IMAB5":1.7591590928445866,"IMAB5P":1.1433485201146842,"IBOV":8.207122,"IFIX":null,"IPCA":0.71,"USDBRL":3.1075,"SP500TR":1.944979,"NDX":3.438778},{"m":"2004-07","CDI":1.2817825606525446,"IMAB":1.6832890433384984,"IMAB5":1.60133949814536,"IMAB5P":1.738135429955201,"IBOV":5.617552,"IFIX":null,"IPCA":0.91,"USDBRL":3.0268,"SP500TR":-3.31004,"NDX":-7.66497},{"m":"2004-08","CDI":1.286088681307196,"IMAB":0.93556426889152,"IMAB5":1.1203317024877535,"IMAB5P":0.8128082022565764,"IBOV":2.090795,"IFIX":null,"IPCA":0.69,"USDBRL":2.9338,"SP500TR":0.404738,"NDX":-2.264366},{"m":"2004-09","CDI":1.244123511111228,"IMAB":1.3027714724043404,"IMAB5":1.3270722541084412,"IMAB5P":1.2868371539147772,"IBOV":1.938341,"IFIX":null,"IPCA":0.33,"USDBRL":2.8586,"SP500TR":1.082937,"NDX":3.219155},{"m":"2004-10","CDI":1.2081107448278505,"IMAB":0.9512478907117261,"IMAB5":0.948859596018603,"IMAB5P":0.9525363115405083,"IBOV":-0.830286,"IFIX":null,"IPCA":0.44,"USDBRL":2.8565,"SP500TR":1.527791,"NDX":5.236631},{"m":"2004-11","CDI":1.2487574855976735,"IMAB":1.1877996763569376,"IMAB5":1.1344768401225558,"IMAB5P":1.2203674475243398,"IBOV":9.005726,"IFIX":null,"IPCA":0.69,"USDBRL":2.7307,"SP500TR":4.04627,"NDX":5.702488},{"m":"2004-12","CDI":1.4798770004630146,"IMAB":1.5070885993065497,"IMAB5":1.4639727333807917,"IMAB5P":1.532613510885783,"IBOV":4.251234,"IFIX":null,"IPCA":0.86,"USDBRL":2.6544,"SP500TR":3.402808,"NDX":3.157493},{"m":"2005-01","CDI":1.3827900930848402,"IMAB":1.2081285103071382,"IMAB5":1.2823074439783255,"IMAB5P":1.165148670070848,"IBOV":-7.045398,"IFIX":null,"IPCA":0.58,"USDBRL":2.6248,"SP500TR":-2.437831,"NDX":-6.260486},{"m":"2005-02","CDI":1.2159170045735745,"IMAB":0.5474198011451437,"IMAB5":-0.6105068337714514,"IMAB5P":1.1915743296139425,"IBOV":15.558166,"IFIX":null,"IPCA":0.59,"USDBRL":2.595,"SP500TR":2.104595,"NDX":-0.566584},{"m":"2005-03","CDI":1.5219750835253176,"IMAB":0.9799449305466279,"IMAB5":1.0237308461430894,"IMAB5P":0.9564084150352592,"IBOV":-5.431867,"IFIX":null,"IPCA":0.61,"USDBRL":2.6662,"SP500TR":-1.770582,"NDX":-1.885481},{"m":"2005-04","CDI":1.4080176277084577,"IMAB":1.3635813999999913,"IMAB5":1.3316150000000082,"IMAB5P":1.3801704000000026,"IBOV":-6.640011,"IFIX":null,"IPCA":0.87,"USDBRL":2.5313,"SP500TR":-1.896769,"NDX":-4.164502},{"m":"2005-05","CDI":1.5004349466422706,"IMAB":1.451635468752288,"IMAB5":1.3304744032748506,"IMAB5P":1.512111090316326,"IBOV":1.462624,"IFIX":null,"IPCA":0.49,"USDBRL":2.4038,"SP500TR":3.182072,"NDX":8.575508},{"m":"2005-06","CDI":1.5844485652490414,"IMAB":0.5157224123642834,"IMAB5":0.2810294552347825,"IMAB5P":0.6248838875317686,"IBOV":-0.618319,"IFIX":null,"IPCA":-0.02,"USDBRL":2.3504,"SP500TR":0.14194,"NDX":-3.183523},{"m":"2005-07","CDI":1.5097698344980426,"IMAB":0.7308882217994972,"IMAB5":0.3827754218422408,"IMAB5P":0.9783549603209929,"IBOV":3.956496,"IFIX":null,"IPCA":0.25,"USDBRL":2.3905,"SP500TR":3.718789,"NDX":7.473619},{"m":"2005-08","CDI":1.6528535842331271,"IMAB":1.0616953390968353,"IMAB5":1.1229163881626425,"IMAB5P":0.9991483501722742,"IBOV":7.68928,"IFIX":null,"IPCA":0.17,"USDBRL":2.3637,"SP500TR":-0.912298,"NDX":-1.459689},{"m":"2005-09","CDI":1.499663076072122,"IMAB":0.5696323847051987,"IMAB5":0.3358807147185505,"IMAB5P":0.8342556068162033,"IBOV":12.618939,"IFIX":null,"IPCA":0.35,"USDBRL":2.2222,"SP500TR":0.809492,"NDX":1.261298},{"m":"2005-10","CDI":1.4033136017802983,"IMAB":0.8975940648875635,"IMAB5":0.7077946072025387,"IMAB5P":1.1063442217972064,"IBOV":-4.401878,"IFIX":null,"IPCA":0.75,"USDBRL":2.2543,"SP500TR":-1.667088,"NDX":-1.403543},{"m":"2005-11","CDI":1.376335169962828,"IMAB":1.9439682017835969,"IMAB5":2.254102963410376,"IMAB5P":1.4600865552914177,"IBOV":5.707352,"IFIX":null,"IPCA":0.55,"USDBRL":2.207,"SP500TR":3.78224,"NDX":5.913196},{"m":"2005-12","CDI":1.4668308133316543,"IMAB":1.8229832677292723,"IMAB5":2.0266828641158474,"IMAB5P":1.2985089892754154,"IBOV":4.822482,"IFIX":null,"IPCA":0.36,"USDBRL":2.3407,"SP500TR":0.034966,"NDX":-1.635822},{"m":"2006-01","CDI":1.425621753101125,"IMAB":2.687280871787734,"IMAB5":2.979986285700442,"IMAB5P":1.69713673928229,"IBOV":14.726413,"IFIX":null,"IPCA":0.59,"USDBRL":2.216,"SP500TR":2.647866,"NDX":3.984321},{"m":"2006-02","CDI":1.1400687625561012,"IMAB":5.299994967493515,"IMAB5":3.1255434195068377,"IMAB5P":13.54377253876451,"IBOV":0.592948,"IFIX":null,"IPCA":0.41,"USDBRL":2.1355,"SP500TR":0.271418,"NDX":-2.348681},{"m":"2006-03","CDI":1.4183429231021005,"IMAB":-0.3838400370346662,"IMAB5":0.38991401298988926,"IMAB5P":-2.0566995243715858,"IBOV":-1.705292,"IFIX":null,"IPCA":0.43,"USDBRL":2.1724,"SP500TR":1.244864,"NDX":1.980766},{"m":"2006-04","CDI":1.0753528017771519,"IMAB":0.45585652182846825,"IMAB5":0.6975089399723133,"IMAB5P":-0.16523272564193947,"IBOV":6.353952,"IFIX":null,"IPCA":0.21,"USDBRL":2.0892,"SP500TR":1.342396,"NDX":-0.173161},{"m":"2006-05","CDI":1.2782064061021225,"IMAB":-3.3841294453849424,"IMAB5":-1.7584501530795715,"IMAB5P":-8.173743272095347,"IBOV":-9.497164,"IFIX":null,"IPCA":0.1,"USDBRL":2.3005,"SP500TR":-2.877936,"NDX":-7.12232},{"m":"2006-06","CDI":1.1821721523021633,"IMAB":1.784692898390161,"IMAB5":1.9377968776305599,"IMAB5P":1.2550800442869159,"IBOV":0.275445,"IFIX":null,"IPCA":-0.21,"USDBRL":2.1643,"SP500TR":0.135302,"NDX":-0.275388},{"m":"2006-07","CDI":1.1669658942348615,"IMAB":3.4084755025124203,"IMAB5":2.378358718371243,"IMAB5P":6.9707329081698965,"IBOV":1.218815,"IFIX":null,"IPCA":0.19,"USDBRL":2.1762,"SP500TR":0.617317,"NDX":-4.177163},{"m":"2006-08","CDI":1.2513251089330657,"IMAB":2.2160924823602546,"IMAB5":1.8982974445010736,"IMAB5P":3.2464986519819883,"IBOV":-2.278764,"IFIX":null,"IPCA":0.05,"USDBRL":2.1388,"SP500TR":2.379295,"NDX":4.657382},{"m":"2006-09","CDI":1.0531707618861574,"IMAB":0.5820998736265848,"IMAB5":0.6794960834034525,"IMAB5P":0.3074519316881519,"IBOV":0.599411,"IFIX":null,"IPCA":0.21,"USDBRL":2.1742,"SP500TR":2.576816,"NDX":4.709667},{"m":"2006-10","CDI":1.0901149047261693,"IMAB":2.7603259422761983,"IMAB5":2.6918183612368196,"IMAB5P":2.9475098284097445,"IBOV":7.718618,"IFIX":null,"IPCA":0.33,"USDBRL":2.143,"SP500TR":3.25835,"NDX":4.740258},{"m":"2006-11","CDI":1.0172823242175166,"IMAB":2.058955926963657,"IMAB5":1.6733922626856357,"IMAB5P":3.066768440525447,"IBOV":6.797912,"IFIX":null,"IPCA":0.31,"USDBRL":2.1668,"SP500TR":1.902016,"NDX":3.388664},{"m":"2006-12","CDI":0.9843018055168962,"IMAB":2.8996770463570076,"IMAB5":2.4616457513016776,"IMAB5P":3.994900739393925,"IBOV":6.061909,"IFIX":null,"IPCA":0.48,"USDBRL":2.138,"SP500TR":1.402669,"NDX":-1.917654},{"m":"2007-01","CDI":1.0783987059458822,"IMAB":1.470387042917376,"IMAB5":1.4555339864829708,"IMAB5P":1.5079315136097726,"IBOV":0.377504,"IFIX":null,"IPCA":0.44,"USDBRL":2.1247,"SP500TR":1.512264,"NDX":2.013775},{"m":"2007-02","CDI":0.8697864836083147,"IMAB":1.3818424868884405,"IMAB5":1.0723718491287837,"IMAB5P":2.1103693701811865,"IBOV":-1.678457,"IFIX":null,"IPCA":0.44,"USDBRL":2.1182,"SP500TR":-1.956115,"NDX":-1.711789},{"m":"2007-03","CDI":1.0485538584378729,"IMAB":2.170972547180683,"IMAB5":1.391586192700034,"IMAB5P":3.8803735479387536,"IBOV":4.356914,"IFIX":null,"IPCA":0.37,"USDBRL":2.0504,"SP500TR":1.118683,"NDX":0.610809},{"m":"2007-04","CDI":0.940622113063494,"IMAB":4.328941134238717,"IMAB5":2.3610822018871325,"IMAB5P":8.409142790248158,"IBOV":6.880806,"IFIX":null,"IPCA":0.25,"USDBRL":2.0339,"SP500TR":4.429756,"NDX":5.38209},{"m":"2007-05","CDI":1.0221273226382,"IMAB":2.596613746330645,"IMAB5":1.4358129159024902,"IMAB5P":4.535326846575538,"IBOV":6.765348,"IFIX":null,"IPCA":0.28,"USDBRL":1.9289,"SP500TR":3.48932,"NDX":3.235976},{"m":"2007-06","CDI":0.9014745938903834,"IMAB":0.47060033276453694,"IMAB5":1.1462561488160938,"IMAB5P":-0.3869081009915343,"IBOV":4.062871,"IFIX":null,"IPCA":0.28,"USDBRL":1.9262,"SP500TR":-1.661234,"NDX":0.306507},{"m":"2007-07","CDI":0.968144394026571,"IMAB":-0.9536465285457707,"IMAB5":0.22699315996277392,"IMAB5P":-2.3091629370742828,"IBOV":-0.385277,"IFIX":null,"IPCA":0.24,"USDBRL":1.8776,"SP500TR":-3.100609,"NDX":-0.105471},{"m":"2007-08","CDI":0.9878189564727746,"IMAB":-0.573397904473405,"IMAB5":0.584814659314592,"IMAB5P":-1.7252671037195633,"IBOV":0.839275,"IFIX":null,"IPCA":0.47,"USDBRL":1.962,"SP500TR":1.49884,"NDX":2.933135},{"m":"2007-09","CDI":0.8005621426875331,"IMAB":2.472173390182819,"IMAB5":1.3497485916313723,"IMAB5P":4.058637007032906,"IBOV":10.666388,"IFIX":null,"IPCA":0.18,"USDBRL":1.8389,"SP500TR":3.740037,"NDX":5.148015},{"m":"2007-10","CDI":0.9240700882339414,"IMAB":-0.24577153029610166,"IMAB5":0.10881904846182788,"IMAB5P":-0.7108084924840719,"IBOV":8.025527,"IFIX":null,"IPCA":0.3,"USDBRL":1.744,"SP500TR":1.590713,"NDX":7.071358},{"m":"2007-11","CDI":0.8398340997149978,"IMAB":-0.48345539691593276,"IMAB5":0.7273264890412579,"IMAB5P":-2.0659147013848855,"IBOV":-3.538918,"IFIX":null,"IPCA":0.38,"USDBRL":1.7837,"SP500TR":-4.180843,"NDX":-6.694114},{"m":"2007-12","CDI":0.8394379652957529,"IMAB":0.7148337505389124,"IMAB5":0.6007738586433886,"IMAB5P":0.8682784997320336,"IBOV":1.396594,"IFIX":null,"IPCA":0.74,"USDBRL":1.7713,"SP500TR":-0.693701,"NDX":-0.199615},{"m":"2008-01","CDI":0.9219485633871871,"IMAB":1.3793958004394424,"IMAB5":1.3644367190277507,"IMAB5P":1.4006177666479047,"IBOV":-6.880526,"IFIX":null,"IPCA":0.54,"USDBRL":1.7603,"SP500TR":-5.998104,"NDX":-11.679524},{"m":"2008-02","CDI":0.795025634338975,"IMAB":2.1646147406003458,"IMAB5":1.4561509494755986,"IMAB5P":3.0325508407380797,"IBOV":6.721925,"IFIX":null,"IPCA":0.49,"USDBRL":1.6833,"SP500TR":-3.248301,"NDX":-5.221515},{"m":"2008-03","CDI":0.8385388573678876,"IMAB":-1.9985058762102437,"IMAB5":-0.7552783993949874,"IMAB5P":-3.4434205242378835,"IBOV":-3.97111,"IFIX":null,"IPCA":0.48,"USDBRL":1.7491,"SP500TR":-0.43195,"NDX":2.100537},{"m":"2008-04","CDI":0.8978211362081989,"IMAB":2.5711015170893248,"IMAB5":1.7881252601517739,"IMAB5P":3.4774618313311523,"IBOV":11.318039,"IFIX":null,"IPCA":0.55,"USDBRL":1.6872,"SP500TR":4.870187,"NDX":7.619261},{"m":"2008-05","CDI":0.8712220957546979,"IMAB":1.2326813300369999,"IMAB5":0.5224544436715162,"IMAB5P":2.13454109399569,"IBOV":6.960582,"IFIX":null,"IPCA":0.79,"USDBRL":1.6294,"SP500TR":1.295362,"NDX":5.989988},{"m":"2008-06","CDI":0.9482222674180862,"IMAB":0.17716623237244988,"IMAB5":0.8053117842952817,"IMAB5P":-0.6403090846982318,"IBOV":-10.434852,"IFIX":null,"IPCA":0.74,"USDBRL":1.5919,"SP500TR":-8.430472,"NDX":-9.61738},{"m":"2008-07","CDI":1.0642423879688723,"IMAB":0.864288092498966,"IMAB5":1.0766200460811115,"IMAB5P":0.5745927783645355,"IBOV":-8.478338,"IFIX":null,"IPCA":0.53,"USDBRL":1.5666,"SP500TR":-0.840768,"NDX":0.656476},{"m":"2008-08","CDI":1.012820831650263,"IMAB":0.5595499465137266,"IMAB5":1.0090207054016531,"IMAB5P":-0.02056455000671864,"IBOV":-6.42761,"IFIX":null,"IPCA":0.28,"USDBRL":1.6344,"SP500TR":1.446592,"NDX":1.264906},{"m":"2008-09","CDI":1.0985183861952352,"IMAB":-1.666681653874369,"IMAB5":-0.26412577943339954,"IMAB5P":-3.4671291809131977,"IBOV":-11.025673,"IFIX":null,"IPCA":0.26,"USDBRL":1.9143,"SP500TR":-8.910566,"NDX":-14.84134},{"m":"2008-10","CDI":1.1738591522707509,"IMAB":-3.834460949223306,"IMAB5":-0.5688453368435042,"IMAB5P":-8.165566468515205,"IBOV":-24.796357,"IFIX":null,"IPCA":0.45,"USDBRL":2.1153,"SP500TR":-16.795056,"NDX":-16.295315},{"m":"2008-11","CDI":0.9958331782348395,"IMAB":3.356921631731735,"IMAB5":2.2789107031507383,"IMAB5P":4.913252438906079,"IBOV":-1.77409,"IFIX":null,"IPCA":0.36,"USDBRL":2.3331,"SP500TR":-7.175186,"NDX":-11.165138},{"m":"2008-12","CDI":1.1110594027462728,"IMAB":6.076812021369982,"IMAB5":4.383260084525054,"IMAB5P":8.508024247990464,"IBOV":2.608054,"IFIX":null,"IPCA":0.28,"USDBRL":2.337,"SP500TR":1.064209,"NDX":2.184274},{"m":"2009-01","CDI":1.042782934820674,"IMAB":4.315065311922428,"IMAB5":2.7675851711117527,"IMAB5P":6.4384635752046115,"IBOV":4.661693,"IFIX":null,"IPCA":0.48,"USDBRL":2.3162,"SP500TR":-8.428882,"NDX":-2.591509},{"m":"2009-02","CDI":0.8527107428278669,"IMAB":1.3548005989631573,"IMAB5":1.5816668490265196,"IMAB5P":1.0622873723284965,"IBOV":-2.843403,"IFIX":null,"IPCA":0.55,"USDBRL":2.3784,"SP500TR":-10.6478,"NDX":-5.359882},{"m":"2009-03","CDI":0.9665390536594654,"IMAB":1.6202641818644947,"IMAB5":1.5803328537686845,"IMAB5P":1.6695540416977073,"IBOV":7.182615,"IFIX":null,"IPCA":0.2,"USDBRL":2.3152,"SP500TR":8.759801,"NDX":10.74495},{"m":"2009-04","CDI":0.8356076754340025,"IMAB":-0.2002047521168726,"IMAB5":0.5926786054101685,"IMAB5P":-1.1918790066030804,"IBOV":15.549236,"IFIX":null,"IPCA":0.48,"USDBRL":2.1783,"SP500TR":9.570914,"NDX":12.717759},{"m":"2009-05","CDI":0.7664918424195699,"IMAB":4.512947012904611,"IMAB5":2.155448357168388,"IMAB5P":7.151380836627652,"IBOV":12.493675,"IFIX":null,"IPCA":0.47,"USDBRL":1.973,"SP500TR":5.593161,"NDX":2.957692},{"m":"2009-06","CDI":0.751435422801805,"IMAB":0.46685214867221436,"IMAB5":0.4296685884897844,"IMAB5P":0.5089138157485351,"IBOV":-3.256286,"IFIX":null,"IPCA":0.36,"USDBRL":1.9516,"SP500TR":0.198531,"NDX":2.90338},{"m":"2009-07","CDI":0.7840822488530019,"IMAB":1.2693362240279171,"IMAB5":1.3722996541245758,"IMAB5P":1.1774791204051116,"IBOV":6.412573,"IFIX":null,"IPCA":0.24,"USDBRL":1.8726,"SP500TR":7.563353,"NDX":8.536807},{"m":"2009-08","CDI":0.6914605575986776,"IMAB":1.6928896745125543,"IMAB5":0.6703971731754965,"IMAB5P":2.619249602504281,"IBOV":3.146603,"IFIX":null,"IPCA":0.15,"USDBRL":1.8864,"SP500TR":3.610345,"NDX":1.361513},{"m":"2009-09","CDI":0.6915370579241742,"IMAB":0.8931297815937267,"IMAB5":0.6480206121002752,"IMAB5P":1.1230678390570015,"IBOV":8.902462,"IFIX":null,"IPCA":0.24,"USDBRL":1.7781,"SP500TR":3.73177,"NDX":5.771636},{"m":"2009-10","CDI":0.6911998526020868,"IMAB":-1.1227395245620109,"IMAB5":0.514497957844684,"IMAB5P":-2.6536945041889415,"IBOV":0.044881,"IFIX":null,"IPCA":0.28,"USDBRL":1.744,"SP500TR":-1.857619,"NDX":-3.016887},{"m":"2009-11","CDI":0.6590201665903406,"IMAB":1.0405036702185955,"IMAB5":0.7424807910664022,"IMAB5P":1.3091455166482024,"IBOV":8.934756,"IFIX":null,"IPCA":0.41,"USDBRL":1.7505,"SP500TR":5.998225,"NDX":6.01633},{"m":"2009-12","CDI":0.7238801880998791,"IMAB":1.7770794937662426,"IMAB5":1.0041838924599755,"IMAB5P":2.4987791866432074,"IBOV":2.302905,"IFIX":null,"IPCA":0.37,"USDBRL":1.7412,"SP500TR":1.931566,"NDX":5.255088},{"m":"2010-01","CDI":0.6582040932865407,"IMAB":1.1836082495753963,"IMAB5":1.2044667592949532,"IMAB5P":1.1662523762729027,"IBOV":-4.646033,"IFIX":null,"IPCA":0.75,"USDBRL":1.8748,"SP500TR":-3.597278,"NDX":-6.411298},{"m":"2010-02","CDI":0.5925054573099997,"IMAB":1.7540851752168907,"IMAB5":1.243031840345643,"IMAB5P":2.2091030586645077,"IBOV":1.684205,"IFIX":null,"IPCA":0.78,"USDBRL":1.811,"SP500TR":3.09755,"NDX":4.459404},{"m":"2010-03","CDI":0.7569307155250504,"IMAB":1.97254695205773,"IMAB5":1.4252468747938174,"IMAB5P":2.442328216620382,"IBOV":5.816661,"IFIX":null,"IPCA":0.52,"USDBRL":1.781,"SP500TR":6.034702,"NDX":7.679191},{"m":"2010-04","CDI":0.6639629599957564,"IMAB":0.6777344396032392,"IMAB5":0.17161650111270355,"IMAB5P":1.1085436970992735,"IBOV":-4.038294,"IFIX":null,"IPCA":0.57,"USDBRL":1.7306,"SP500TR":1.578641,"NDX":2.159484},{"m":"2010-05","CDI":0.7500982660092692,"IMAB":-0.3437605371707786,"IMAB5":0.7837166010894903,"IMAB5P":-1.3980085283817112,"IBOV":-6.638883,"IFIX":null,"IPCA":0.43,"USDBRL":1.8167,"SP500TR":-7.985057,"NDX":-7.409665},{"m":"2010-06","CDI":0.7908287555662641,"IMAB":1.27485403119032,"IMAB5":0.9346924515501343,"IMAB5P":1.7441846104622183,"IBOV":-3.347703,"IFIX":null,"IPCA":0.0,"USDBRL":1.8015,"SP500TR":-5.234865,"NDX":-6.113723},{"m":"2010-07","CDI":0.8592218480582225,"IMAB":1.581433764837481,"IMAB5":1.3493056013205162,"IMAB5P":1.9012490758960165,"IBOV":10.797412,"IFIX":null,"IPCA":0.01,"USDBRL":1.7572,"SP500TR":7.00606,"NDX":7.17941},{"m":"2010-08","CDI":0.8863076655987401,"IMAB":1.999408811883563,"IMAB5":0.9893987811292471,"IMAB5P":3.321867022690217,"IBOV":-3.510236,"IFIX":null,"IPCA":0.04,"USDBRL":1.756,"SP500TR":-4.514001,"NDX":-5.180791},{"m":"2010-09","CDI":0.8445660740826533,"IMAB":0.518196388886949,"IMAB5":0.7307171582225047,"IMAB5P":0.271324886305746,"IBOV":6.576561,"IFIX":null,"IPCA":0.45,"USDBRL":1.6942,"SP500TR":8.924133,"NDX":13.047757},{"m":"2010-10","CDI":0.805671202661773,"IMAB":1.9946520861221284,"IMAB5":1.6225078537223991,"IMAB5P":2.4009030428695954,"IBOV":1.791047,"IFIX":null,"IPCA":0.75,"USDBRL":1.7014,"SP500TR":3.805234,"NDX":6.326696},{"m":"2010-11","CDI":0.805634927178267,"IMAB":0.8720088478265442,"IMAB5":0.48601642737291506,"IMAB5P":1.3242490112163718,"IBOV":-4.199464,"IFIX":null,"IPCA":0.83,"USDBRL":1.7161,"SP500TR":0.012616,"NDX":-0.33514},{"m":"2010-12","CDI":0.9271585500567836,"IMAB":2.390618690122648,"IMAB5":1.3847603592240798,"IMAB5P":3.535405815307069,"IBOV":2.362308,"IFIX":null,"IPCA":0.63,"USDBRL":1.6662,"SP500TR":6.683187,"NDX":4.747962},{"m":"2011-01","CDI":0.8605991060403717,"IMAB":-0.3112420911637104,"IMAB5":0.7901462533665748,"IMAB5P":-1.486888175690404,"IBOV":-3.93902,"IFIX":0.564,"IPCA":0.83,"USDBRL":1.6734,"SP500TR":2.370056,"NDX":2.88791},{"m":"2011-02","CDI":0.8424286636688372,"IMAB":0.6425471946460259,"IMAB5":0.7825202426195776,"IMAB5P":0.4962691894237814,"IBOV":1.214182,"IFIX":-0.513106,"IPCA":0.8,"USDBRL":1.6612,"SP500TR":3.425899,"NDX":3.027292},{"m":"2011-03","CDI":0.9188525213828402,"IMAB":1.55845381638835,"IMAB5":1.7843983486174775,"IMAB5P":1.320603200505177,"IBOV":1.786023,"IFIX":2.775668,"IPCA":0.79,"USDBRL":1.6287,"SP500TR":0.039753,"NDX":-0.510423},{"m":"2011-04","CDI":0.8388017383194724,"IMAB":0.5488207418455904,"IMAB5":0.7321289087790506,"IMAB5P":0.3561223303197192,"IBOV":-3.57772,"IFIX":1.764162,"IPCA":0.77,"USDBRL":1.5733,"SP500TR":2.961458,"NDX":2.782829},{"m":"2011-05","CDI":0.9852655906226637,"IMAB":1.4916881422729844,"IMAB5":0.9015773860935772,"IMAB5P":2.0920206808348274,"IBOV":-2.287486,"IFIX":-0.553331,"IPCA":0.47,"USDBRL":1.5799,"SP500TR":-1.131952,"NDX":-1.311938},{"m":"2011-06","CDI":0.952667163335974,"IMAB":-0.3016560743145935,"IMAB5":0.6576541093308297,"IMAB5P":-1.1180228926398805,"IBOV":-3.429956,"IFIX":1.489525,"IPCA":0.15,"USDBRL":1.5611,"SP500TR":-1.666915,"NDX":-2.000808},{"m":"2011-07","CDI":0.9665972897116903,"IMAB":0.673801637359972,"IMAB5":1.2598015800814766,"IMAB5P":0.17075007324314218,"IBOV":-5.737149,"IFIX":2.690086,"IPCA":0.16,"USDBRL":1.5563,"SP500TR":-2.033307,"NDX":1.623176},{"m":"2011-08","CDI":1.0723828601227003,"IMAB":5.4263460768518845,"IMAB5":3.9053009823285967,"IMAB5P":6.887673532534588,"IBOV":-3.958166,"IFIX":0.774543,"IPCA":0.37,"USDBRL":1.5872,"SP500TR":-5.432409,"NDX":-5.154881},{"m":"2011-09","CDI":0.9397861596021517,"IMAB":0.6567462744682784,"IMAB5":1.664665451243863,"IMAB5P":-0.2781634306867953,"IBOV":-7.382408,"IFIX":1.670769,"IPCA":0.53,"USDBRL":1.8544,"SP500TR":-7.029632,"NDX":-4.543937},{"m":"2011-10","CDI":0.8807435891683868,"IMAB":1.5548893869760105,"IMAB5":0.6816880810886161,"IMAB5P":2.383650792074432,"IBOV":11.49362,"IFIX":-0.359981,"IPCA":0.43,"USDBRL":1.6885,"SP500TR":10.929206,"NDX":10.326394},{"m":"2011-11","CDI":0.8586153756822146,"IMAB":2.023891040678172,"IMAB5":1.411646747814932,"IMAB5P":2.577626281069101,"IBOV":-2.508485,"IFIX":1.481254,"IPCA":0.52,"USDBRL":1.8109,"SP500TR":-0.22084,"NDX":-2.749065},{"m":"2011-12","CDI":0.9046652209716566,"IMAB":0.312702082157279,"IMAB5":0.1399924368285177,"IMAB5P":0.4579125908717119,"IBOV":-0.212571,"IFIX":3.695364,"IPCA":0.5,"USDBRL":1.8758,"SP500TR":1.022885,"NDX":-0.756791},{"m":"2012-01","CDI":0.8853011335214322,"IMAB":1.6314799097360444,"IMAB5":1.8535468622218332,"IMAB5P":1.4447602644284574,"IBOV":11.132645,"IFIX":3.033242,"IPCA":0.56,"USDBRL":1.7391,"SP500TR":4.481366,"NDX":8.346534},{"m":"2012-02","CDI":0.7415946132578899,"IMAB":2.1733088254085153,"IMAB5":1.4630566849771043,"IMAB5P":2.769950942217436,"IBOV":4.343301,"IFIX":4.648334,"IPCA":0.45,"USDBRL":1.7092,"SP500TR":4.324178,"NDX":6.2866},{"m":"2012-03","CDI":0.8082997820865412,"IMAB":1.913126747629601,"IMAB5":1.1239126119499065,"IMAB5P":2.541106144659655,"IBOV":-1.976487,"IFIX":4.065338,"IPCA":0.21,"USDBRL":1.8221,"SP500TR":3.290794,"NDX":5.038692},{"m":"2012-04","CDI":0.6999081703227716,"IMAB":4.42006380653357,"IMAB5":1.7114554707570617,"IMAB5P":6.525833727451191,"IBOV":-4.170934,"IFIX":1.434254,"IPCA":0.64,"USDBRL":1.8918,"SP500TR":-0.627399,"NDX":-1.146533},{"m":"2012-05","CDI":0.7324825465300666,"IMAB":1.9659891314721234,"IMAB5":0.6984123711024415,"IMAB5P":2.697859427174998,"IBOV":-11.856712,"IFIX":3.512688,"IPCA":0.36,"USDBRL":2.0223,"SP500TR":-6.010132,"NDX":-7.299309},{"m":"2012-06","CDI":0.6385819851558061,"IMAB":-0.49963671130821563,"IMAB5":0.7889514985649493,"IMAB5P":-1.715530701974144,"IBOV":-0.249181,"IFIX":3.967566,"IPCA":0.08,"USDBRL":2.0213,"SP500TR":4.120253,"NDX":3.598199},{"m":"2012-07","CDI":0.6754136133780175,"IMAB":2.880109194586633,"IMAB5":1.6687227419226458,"IMAB5P":4.006201798835751,"IBOV":3.205651,"IFIX":5.946366,"IPCA":0.43,"USDBRL":2.0499,"SP500TR":1.388875,"NDX":1.024959},{"m":"2012-08","CDI":0.6865562605562481,"IMAB":1.8085309892403867,"IMAB5":0.6313945113314734,"IMAB5P":2.7766095683863234,"IBOV":1.719163,"IFIX":-0.42594,"IPCA":0.41,"USDBRL":2.0372,"SP500TR":2.252338,"NDX":4.908552},{"m":"2012-09","CDI":0.5371841472767924,"IMAB":1.4350922231357588,"IMAB5":1.6547143032681122,"IMAB5P":1.2602548626782673,"IBOV":3.705496,"IFIX":1.759537,"IPCA":0.57,"USDBRL":2.0306,"SP500TR":2.584258,"NDX":0.972136},{"m":"2012-10","CDI":0.6072902289131266,"IMAB":3.7956586645907953,"IMAB5":1.80963682433819,"IMAB5P":5.272203971877398,"IBOV":-3.561723,"IFIX":-2.051567,"IPCA":0.59,"USDBRL":2.0313,"SP500TR":-1.846508,"NDX":-5.404064},{"m":"2012-11","CDI":0.5444922749645587,"IMAB":0.5312483682487823,"IMAB5":1.009847789300844,"IMAB5P":0.173658605549476,"IBOV":0.712113,"IFIX":0.396516,"IPCA":0.6,"USDBRL":2.1074,"SP500TR":0.579939,"NDX":1.131453},{"m":"2012-12","CDI":0.5342390061951363,"IMAB":1.9188009143758622,"IMAB5":1.3869552186671186,"IMAB5P":2.290044243175182,"IBOV":6.050519,"IFIX":4.435388,"IPCA":0.79,"USDBRL":2.0435,"SP500TR":0.911423,"NDX":-0.632962},{"m":"2013-01","CDI":0.5866372510562767,"IMAB":0.5382495645925189,"IMAB5":0.23187750924731354,"IMAB5P":0.7792442527715826,"IBOV":-1.953321,"IFIX":2.569057,"IPCA":0.86,"USDBRL":1.9883,"SP500TR":5.1796,"NDX":2.653211},{"m":"2013-02","CDI":0.4815787621320178,"IMAB":-0.8769457488817967,"IMAB5":-0.5040639016653081,"IMAB5P":-1.1173519660095943,"IBOV":-3.91088,"IFIX":-0.984037,"IPCA":0.6,"USDBRL":1.9754,"SP500TR":1.357549,"NDX":0.258099},{"m":"2013-03","CDI":0.5377055735255043,"IMAB":-1.883287160312297,"IMAB5":0.6579686415902675,"IMAB5P":-3.4909967110428264,"IBOV":-1.867154,"IFIX":-1.002578,"IPCA":0.47,"USDBRL":2.0138,"SP500TR":3.750304,"NDX":2.925234},{"m":"2013-04","CDI":0.6008402637849075,"IMAB":1.5818337088086887,"IMAB5":0.9202260707387389,"IMAB5P":2.005628622251976,"IBOV":-0.783857,"IFIX":-2.077301,"IPCA":0.55,"USDBRL":2.0017,"SP500TR":1.926675,"NDX":2.439076},{"m":"2013-05","CDI":0.584866710955434,"IMAB":-4.515718999876162,"IMAB5":-1.1893530984397938,"IMAB5P":-6.269712477076295,"IBOV":-4.300258,"IFIX":0.023241,"IPCA":0.37,"USDBRL":2.1319,"SP500TR":2.339009,"NDX":3.266564},{"m":"2013-06","CDI":0.5919379792715729,"IMAB":-2.7902117509291724,"IMAB5":-0.6333407035344463,"IMAB5P":-3.9473068528563915,"IBOV":-11.305164,"IFIX":-7.202974,"IPCA":0.26,"USDBRL":2.2156,"SP500TR":-1.342813,"NDX":-2.420044},{"m":"2013-07","CDI":0.708798623698681,"IMAB":1.2909515915831005,"IMAB5":0.8728227200931249,"IMAB5P":1.508172198987645,"IBOV":1.638026,"IFIX":-0.740736,"IPCA":0.03,"USDBRL":2.2903,"SP500TR":5.088648,"NDX":6.206689},{"m":"2013-08","CDI":0.6957961801975943,"IMAB":-2.6132708569926,"IMAB5":-0.44015466418430016,"IMAB5P":-3.8819367142776784,"IBOV":3.684625,"IFIX":-3.64653,"IPCA":0.24,"USDBRL":2.3725,"SP500TR":-2.896132,"NDX":-0.530061},{"m":"2013-09","CDI":0.6991410738331982,"IMAB":0.38622605835541,"IMAB5":1.2107280358728545,"IMAB5P":-0.18559984423269782,"IBOV":4.651787,"IFIX":1.880632,"IPCA":0.35,"USDBRL":2.23,"SP500TR":3.135828,"NDX":4.697424},{"m":"2013-10","CDI":0.8033685199359653,"IMAB":0.9103319410576294,"IMAB5":0.4858957855953028,"IMAB5P":1.2049147957028827,"IBOV":3.664647,"IFIX":1.58252,"IPCA":0.57,"USDBRL":2.2026,"SP500TR":4.59673,"NDX":4.95712},{"m":"2013-11","CDI":0.7105239649528361,"IMAB":-3.586699538798843,"IMAB5":-0.0057235427942226025,"IMAB5P":-6.051821036754134,"IBOV":-3.269138,"IFIX":-0.803176,"IPCA":0.54,"USDBRL":2.3249,"SP500TR":3.047391,"NDX":3.259292},{"m":"2013-12","CDI":0.7803853615363066,"IMAB":1.305117955234536,"IMAB5":1.169934825462704,"IMAB5P":1.4049043507069703,"IBOV":-1.858391,"IFIX":-2.618884,"IPCA":0.92,"USDBRL":2.3426,"SP500TR":2.531763,"NDX":2.986964},{"m":"2014-01","CDI":0.8397794696763494,"IMAB":-2.5506539041081244,"IMAB5":-0.7901414167249432,"IMAB5P":-3.82072229362862,"IBOV":-7.509966,"IFIX":-6.74038,"IPCA":0.55,"USDBRL":2.4263,"SP500TR":-3.457609,"NDX":-1.951004},{"m":"2014-02","CDI":0.7826750272535987,"IMAB":4.439033985832874,"IMAB5":2.866764252273435,"IMAB5P":5.591547696235488,"IBOV":-1.14316,"IFIX":3.773673,"IPCA":0.69,"USDBRL":2.3334,"SP500TR":4.574577,"NDX":4.945603},{"m":"2014-03","CDI":0.7599512285523025,"IMAB":0.7098932844609829,"IMAB5":0.8998642208399188,"IMAB5P":0.5512618237580647,"IBOV":7.050775,"IFIX":0.424678,"IPCA":0.92,"USDBRL":2.263,"SP500TR":0.840363,"NDX":-2.715297},{"m":"2014-04","CDI":0.8154499042398511,"IMAB":2.418531774571009,"IMAB5":1.3163103287822997,"IMAB5P":3.1745966190344532,"IBOV":2.403594,"IFIX":1.099493,"IPCA":0.67,"USDBRL":2.236,"SP500TR":0.739146,"NDX":-0.381562},{"m":"2014-05","CDI":0.85829347025701,"IMAB":4.265472919124091,"IMAB5":1.467944947239963,"IMAB5P":6.187021230347578,"IBOV":-0.75029,"IFIX":1.368859,"IPCA":0.46,"USDBRL":2.239,"SP500TR":2.347626,"NDX":4.321585},{"m":"2014-06","CDI":0.8174009240591751,"IMAB":0.05907707824792663,"IMAB5":1.1093294893357752,"IMAB5P":-0.6419446939442075,"IBOV":3.764451,"IFIX":1.342341,"IPCA":0.4,"USDBRL":2.2025,"SP500TR":2.065629,"NDX":3.01486},{"m":"2014-07","CDI":0.9404189181517753,"IMAB":1.1268627738766135,"IMAB5":0.8564452861637983,"IMAB5P":1.3101283707135147,"IBOV":5.005227,"IFIX":1.570303,"IPCA":0.01,"USDBRL":2.2674,"SP500TR":-1.379153,"NDX":1.117554},{"m":"2014-08","CDI":0.859527480455613,"IMAB":4.819108947366435,"IMAB5":1.3527575083877252,"IMAB5P":6.910885764017216,"IBOV":9.777535,"IFIX":0.2611,"IPCA":0.25,"USDBRL":2.2396,"SP500TR":4.000358,"NDX":4.882725},{"m":"2014-09","CDI":0.9005823511426536,"IMAB":-3.533467751818231,"IMAB5":0.0033236427595007,"IMAB5P":-5.4307192663883725,"IBOV":-11.702376,"IFIX":0.590192,"IPCA":0.57,"USDBRL":2.451,"SP500TR":-1.402016,"NDX":-0.811013},{"m":"2014-10","CDI":0.9448030786096018,"IMAB":2.080268393525575,"IMAB5":0.9372445434576715,"IMAB5P":2.7297589398252553,"IBOV":0.947262,"IFIX":-1.335266,"IPCA":0.42,"USDBRL":2.4442,"SP500TR":2.44248,"NDX":2.685797},{"m":"2014-11","CDI":0.8378554598101662,"IMAB":2.1446483718953413,"IMAB5":1.0467960668259169,"IMAB5P":2.728944858132243,"IBOV":0.174634,"IFIX":-2.919869,"IPCA":0.51,"USDBRL":2.5601,"SP500TR":2.689409,"NDX":4.318687},{"m":"2014-12","CDI":0.9558455495306095,"IMAB":-1.9062979629464682,"IMAB5":0.04097828953062432,"IMAB5P":-2.9593604944056273,"IBOV":-8.618869,"IFIX":-1.820773,"IPCA":0.78,"USDBRL":2.6562,"SP500TR":-0.251922,"NDX":-2.340138},{"m":"2015-01","CDI":0.9293490253520886,"IMAB":3.117372629444004,"IMAB5":2.053800823955032,"IMAB5P":3.7114476484897407,"IBOV":-6.198541,"IFIX":2.643785,"IPCA":1.24,"USDBRL":2.6623,"SP500TR":-3.002035,"NDX":-2.073744},{"m":"2015-02","CDI":0.81852915698577,"IMAB":0.5433254369696217,"IMAB5":1.2209969516185915,"IMAB5P":0.17125250118605884,"IBOV":9.967259,"IFIX":-0.192411,"IPCA":1.22,"USDBRL":2.8782,"SP500TR":5.747369,"NDX":7.044586},{"m":"2015-03","CDI":1.0361244114270196,"IMAB":-0.2835649389856476,"IMAB5":1.0294234750414466,"IMAB5P":-1.0205687928019347,"IBOV":-0.839287,"IFIX":-1.591185,"IPCA":1.32,"USDBRL":3.208,"SP500TR":-1.581564,"NDX":-2.409096},{"m":"2015-04","CDI":0.9482741535211003,"IMAB":2.4388841968467467,"IMAB5":0.4597092032741612,"IMAB5P":3.5537773824636743,"IBOV":9.930018,"IFIX":3.667921,"IPCA":0.71,"USDBRL":2.9936,"SP500TR":0.959459,"NDX":1.858925},{"m":"2015-05","CDI":0.98383851613566,"IMAB":2.5714101105200005,"IMAB5":1.6313349451945625,"IMAB5P":3.144730190664591,"IBOV":-6.169195,"IFIX":1.466651,"IPCA":0.74,"USDBRL":3.1788,"SP500TR":1.28586,"NDX":2.129467},{"m":"2015-06","CDI":1.0658271946613729,"IMAB":-0.2677025700435709,"IMAB5":0.8469393595922359,"IMAB5P":-0.7297806587612476,"IBOV":0.607273,"IFIX":3.027054,"IPCA":0.79,"USDBRL":3.1026,"SP500TR":-1.935912,"NDX":-2.473027},{"m":"2015-07","CDI":1.177313530540025,"IMAB":-0.7251835272934382,"IMAB5":1.7808978167386025,"IMAB5P":-1.799560967577274,"IBOV":-4.174968,"IFIX":0.703888,"IPCA":0.62,"USDBRL":3.394,"SP500TR":2.095207,"NDX":4.370273},{"m":"2015-08","CDI":1.1074797767651967,"IMAB":-3.1142295020850197,"IMAB5":-0.46866717334164143,"IMAB5P":-4.585632026495601,"IBOV":-8.334354,"IFIX":-0.857392,"IPCA":0.22,"USDBRL":3.6467,"SP500TR":-6.033422,"NDX":-6.849776},{"m":"2015-09","CDI":1.1074797767651967,"IMAB":-0.6847817149484681,"IMAB5":0.7894570459416661,"IMAB5P":-1.6328111735879447,"IBOV":-3.359062,"IFIX":-3.957123,"IPCA":0.54,"USDBRL":3.9729,"SP500TR":-2.474358,"NDX":-2.187818},{"m":"2015-10","CDI":1.107727360465649,"IMAB":2.5753330897732907,"IMAB5":2.4888281360555986,"IMAB5P":2.63373335471484,"IBOV":1.796475,"IFIX":2.124348,"IPCA":0.82,"USDBRL":3.8589,"SP500TR":8.435457,"NDX":11.187833},{"m":"2015-11","CDI":1.0551726062739464,"IMAB":1.0316164657470317,"IMAB5":0.5451503129191959,"IMAB5P":1.3477042278799756,"IBOV":-1.63174,"IFIX":1.57183,"IPCA":1.01,"USDBRL":3.8506,"SP500TR":0.297314,"NDX":0.337282},{"m":"2015-12","CDI":1.161300302184487,"IMAB":1.5220266007211825,"IMAB5":2.1201679192025757,"IMAB5P":1.1288255394789504,"IBOV":-3.923728,"IFIX":-3.004144,"IPCA":0.96,"USDBRL":3.9048,"SP500TR":-1.577196,"NDX":-1.527272},{"m":"2016-01","CDI":1.0549251512649294,"IMAB":1.9116876237446956,"IMAB5":2.9708896244932115,"IMAB5P":1.2068055421814217,"IBOV":-6.791171,"IFIX":-6.107791,"IPCA":1.27,"USDBRL":4.0428,"SP500TR":-4.962323,"NDX":-6.838268},{"m":"2016-02","CDI":1.0014792075630607,"IMAB":2.260501882798982,"IMAB5":1.5382317329797335,"IMAB5P":2.748027128956898,"IBOV":5.909693,"IFIX":2.879906,"IPCA":0.9,"USDBRL":3.9796,"SP500TR":-0.134911,"NDX":-1.823947},{"m":"2016-03","CDI":1.1605217717308935,"IMAB":5.311080478908714,"IMAB5":0.7583153703402123,"IMAB5P":8.297371323340407,"IBOV":16.968345,"IFIX":9.161977,"IPCA":0.43,"USDBRL":3.5589,"SP500TR":6.783732,"NDX":6.72535},{"m":"2016-04","CDI":1.054465593570142,"IMAB":3.9262634413350206,"IMAB5":1.5399348772296095,"IMAB5P":5.3675620994724005,"IBOV":7.701966,"IFIX":4.604378,"IPCA":0.61,"USDBRL":3.4508,"SP500TR":0.387796,"NDX":-3.175092},{"m":"2016-05","CDI":1.1074797767651967,"IMAB":-0.09822948575247681,"IMAB5":0.7985830580796716,"IMAB5P":-0.7321308775846802,"IBOV":-10.088571,"IFIX":3.744121,"IPCA":0.78,"USDBRL":3.5951,"SP500TR":1.795724,"NDX":4.205891},{"m":"2016-06","CDI":1.1605217717308935,"IMAB":1.9292605416796338,"IMAB5":0.9381291482079002,"IMAB5P":2.5711989576746364,"IBOV":6.303099,"IFIX":1.600139,"IPCA":0.35,"USDBRL":3.2098,"SP500TR":0.259225,"NDX":-2.347315},{"m":"2016-07","CDI":1.1074797767651967,"IMAB":2.507422728398545,"IMAB5":1.206849736633897,"IMAB5P":3.3429825948314784,"IBOV":11.219919,"IFIX":5.972555,"IPCA":0.52,"USDBRL":3.239,"SP500TR":3.686796,"NDX":7.074491},{"m":"2016-08","CDI":1.2135915930575614,"IMAB":0.8865005563643447,"IMAB5":1.09381074776711,"IMAB5P":0.8745921588173999,"IBOV":1.034581,"IFIX":1.792627,"IPCA":0.44,"USDBRL":3.2403,"SP500TR":0.140485,"NDX":0.862956},{"m":"2016-09","CDI":1.1074797767651967,"IMAB":1.5705400618239551,"IMAB5":1.4094311146013005,"IMAB5P":1.666351260764798,"IBOV":0.804717,"IFIX":2.768912,"IPCA":0.08,"USDBRL":3.2462,"SP500TR":0.018688,"NDX":2.193446},{"m":"2016-10","CDI":1.0474361045558434,"IMAB":0.6415846873927489,"IMAB5":0.4593410523105801,"IMAB5P":0.7291418556012008,"IBOV":11.234883,"IFIX":3.847361,"IPCA":0.26,"USDBRL":3.1811,"SP500TR":-1.824049,"NDX":-1.526554},{"m":"2016-11","CDI":1.0368927878631196,"IMAB":-1.2201622836460424,"IMAB5":0.3974385197937913,"IMAB5P":-2.0445996652812326,"IBOV":-4.648721,"IFIX":-2.587066,"IPCA":0.18,"USDBRL":3.3967,"SP500TR":3.703514,"NDX":0.198698},{"m":"2016-12","CDI":1.1217581886066474,"IMAB":2.907308784239704,"IMAB5":1.394678328183252,"IMAB5P":3.7131806562260117,"IBOV":-2.712274,"IFIX":1.496356,"IPCA":0.3,"USDBRL":3.2591,"SP500TR":1.976537,"NDX":1.097737},{"m":"2017-01","CDI":1.0845645344202737,"IMAB":1.8668426162475438,"IMAB5":1.1564047933656063,"IMAB5P":2.2369759649953247,"IBOV":7.377868,"IFIX":3.758407,"IPCA":0.38,"USDBRL":3.127,"SP500TR":1.896619,"NDX":5.204969},{"m":"2017-02","CDI":0.8638119199916305,"IMAB":3.849053848962214,"IMAB5":1.4921151483524353,"IMAB5P":5.0582137749465295,"IBOV":3.079165,"IFIX":4.866904,"IPCA":0.33,"USDBRL":3.0993,"SP500TR":3.970818,"NDX":4.173337},{"m":"2017-03","CDI":1.0504070439588453,"IMAB":1.0448022356648101,"IMAB5":1.3909327677809946,"IMAB5P":0.8750773726487582,"IBOV":-2.517217,"IFIX":0.195184,"IPCA":0.25,"USDBRL":3.1684,"SP500TR":0.116476,"NDX":1.987125},{"m":"2017-04","CDI":0.785293106814855,"IMAB":-0.32188268766939476,"IMAB5":0.7098280805138968,"IMAB5P":-0.815523221807346,"IBOV":0.64505,"IFIX":0.149546,"IPCA":0.14,"USDBRL":3.1984,"SP500TR":1.027054,"NDX":2.709595},{"m":"2017-05","CDI":0.925556088908075,"IMAB":-1.1882483576578728,"IMAB5":0.08428824074651065,"IMAB5P":-1.7759675652460838,"IBOV":-4.115667,"IFIX":1.026102,"IPCA":0.31,"USDBRL":3.2437,"SP500TR":1.407253,"NDX":3.676349},{"m":"2017-06","CDI":0.8081074457169546,"IMAB":0.16446199164323883,"IMAB5":0.5246140929285881,"IMAB5P":-0.05549141542271485,"IBOV":0.300583,"IFIX":0.845509,"IPCA":-0.23,"USDBRL":3.3082,"SP500TR":0.624175,"NDX":-2.450938},{"m":"2017-07","CDI":0.7971612534896311,"IMAB":3.9975927723387983,"IMAB5":2.846387324355537,"IMAB5P":4.673602291536461,"IBOV":4.801894,"IFIX":-0.383291,"IPCA":0.24,"USDBRL":3.1307,"SP500TR":2.05628,"NDX":4.133407},{"m":"2017-08","CDI":0.8014550514662266,"IMAB":1.3428149253060795,"IMAB5":1.254614147374511,"IMAB5P":1.3625609079499057,"IBOV":7.455496,"IFIX":0.861973,"IPCA":0.19,"USDBRL":3.1471,"SP500TR":0.306209,"NDX":1.841224},{"m":"2017-09","CDI":0.6377195761535948,"IMAB":1.810809141699532,"IMAB5":1.0066301545072598,"IMAB5P":2.398695007720919,"IBOV":4.882413,"IFIX":6.576296,"IPCA":0.16,"USDBRL":3.168,"SP500TR":2.062776,"NDX":-0.1553},{"m":"2017-10","CDI":0.6431483845478869,"IMAB":-0.3817615711154909,"IMAB5":0.4839368612282069,"IMAB5P":-1.011190178014565,"IBOV":0.020163,"IFIX":0.234574,"IPCA":0.42,"USDBRL":3.2769,"SP500TR":2.333475,"NDX":4.503207},{"m":"2017-11","CDI":0.567443846715121,"IMAB":-0.7606630206927978,"IMAB5":0.10274242180994264,"IMAB5P":-1.3993181531435028,"IBOV":-3.14567,"IFIX":-0.592024,"IPCA":0.28,"USDBRL":3.2616,"SP500TR":3.066958,"NDX":1.872431},{"m":"2017-12","CDI":0.5376562681593589,"IMAB":0.8281871819587172,"IMAB5":0.8837044190389554,"IMAB5P":0.7857722534495348,"IBOV":6.156772,"IFIX":0.604587,"IPCA":0.44,"USDBRL":3.308,"SP500TR":1.111832,"NDX":0.484794},{"m":"2018-01","CDI":0.583386199996716,"IMAB":3.401286864965014,"IMAB5":1.3335673437399054,"IMAB5P":4.948527500667921,"IBOV":11.139252,"IFIX":2.639616,"IPCA":0.29,"USDBRL":3.1624,"SP500TR":5.725378,"NDX":8.654377},{"m":"2018-02","CDI":0.46493268577765257,"IMAB":0.5485999889270232,"IMAB5":0.5391564574917851,"IMAB5P":0.5565567196456955,"IBOV":0.519227,"IFIX":1.145618,"IPCA":0.32,"USDBRL":3.2449,"SP500TR":-3.685581,"NDX":-1.375114},{"m":"2018-03","CDI":0.5315638694022962,"IMAB":0.9355238226015361,"IMAB5":1.6201932842992761,"IMAB5P":0.382068228605581,"IBOV":0.014024,"IFIX":1.995752,"IPCA":0.09,"USDBRL":3.3238,"SP500TR":-2.541402,"NDX":-3.987063},{"m":"2018-04","CDI":0.5175140582148297,"IMAB":-0.143807796792228,"IMAB5":0.42149667697839455,"IMAB5P":-0.6289513540384428,"IBOV":0.878504,"IFIX":-0.860643,"IPCA":0.22,"USDBRL":3.4811,"SP500TR":0.383711,"NDX":0.371364},{"m":"2018-05","CDI":0.5175140582148297,"IMAB":-3.1569250629641,"IMAB5":-1.5573338159573291,"IMAB5P":-4.652984477660782,"IBOV":-10.871307,"IFIX":-5.268585,"IPCA":0.4,"USDBRL":3.737,"SP500TR":2.408224,"NDX":5.482648},{"m":"2018-06","CDI":0.5175140582148297,"IMAB":-0.32006941142289635,"IMAB5":0.44966981620593316,"IMAB5P":-1.0784763538602027,"IBOV":-5.199885,"IFIX":-4.014706,"IPCA":1.26,"USDBRL":3.8558,"SP500TR":0.615445,"NDX":1.048689},{"m":"2018-07","CDI":0.5422242786957465,"IMAB":2.3152531786777564,"IMAB5":1.4764908457118642,"IMAB5P":3.1461562097517826,"IBOV":8.875339,"IFIX":1.375387,"IPCA":0.33,"USDBRL":3.7549,"SP500TR":3.721476,"NDX":2.715319},{"m":"2018-08","CDI":0.5669405736901778,"IMAB":-0.44769409858780307,"IMAB5":-0.25564575786861665,"IMAB5P":-0.5205354487038405,"IBOV":-3.209917,"IFIX":-0.698554,"IPCA":-0.09,"USDBRL":4.1353,"SP500TR":3.258399,"NDX":5.843072},{"m":"2018-09","CDI":0.46811183482213803,"IMAB":-0.1493693561415821,"IMAB5":0.8854557028283416,"IMAB5P":-1.0341937199360385,"IBOV":3.475464,"IFIX":-0.214546,"IPCA":0.48,"USDBRL":4.0039,"SP500TR":0.569207,"NDX":-0.351424},{"m":"2018-10","CDI":0.5430424944385503,"IMAB":7.139370042755067,"IMAB5":3.0984878644779945,"IMAB5P":10.663873097894982,"IBOV":10.185118,"IFIX":5.042135,"IPCA":0.45,"USDBRL":3.7177,"SP500TR":-6.834999,"NDX":-8.659939},{"m":"2018-11","CDI":0.49355337739502847,"IMAB":0.9044436816161072,"IMAB5":0.14279769092357952,"IMAB5P":1.523034360252784,"IBOV":2.379771,"IFIX":2.587795,"IPCA":-0.21,"USDBRL":3.8633,"SP500TR":2.037808,"NDX":-0.259654},{"m":"2018-12","CDI":0.49355337739502847,"IMAB":1.6494240680481775,"IMAB5":1.3630773887663983,"IMAB5P":1.8784719965797558,"IBOV":-1.806354,"IFIX":2.22171,"IPCA":0.15,"USDBRL":3.8748,"SP500TR":-9.028984,"NDX":-8.908313},{"m":"2019-01","CDI":0.5430424944385503,"IMAB":4.366103931792842,"IMAB5":1.5396055541767595,"IMAB5P":6.61114952244386,"IBOV":10.816675,"IFIX":2.470669,"IPCA":0.32,"USDBRL":3.6519,"SP500TR":8.013484,"NDX":9.113307},{"m":"2019-02","CDI":0.49355337739502847,"IMAB":0.5465236390830297,"IMAB5":0.5462572156414325,"IMAB5P":0.5497509914911936,"IBOV":-1.857819,"IFIX":1.032083,"IPCA":0.43,"USDBRL":3.7385,"SP500TR":3.210851,"NDX":2.760886},{"m":"2019-03","CDI":0.46881795441464647,"IMAB":0.5798815389804313,"IMAB5":0.7844681984874535,"IMAB5P":0.43168286823673796,"IBOV":-0.177644,"IFIX":1.986807,"IPCA":0.75,"USDBRL":3.8967,"SP500TR":1.943128,"NDX":3.962509},{"m":"2019-04","CDI":0.5182948902365592,"IMAB":1.5053118645779184,"IMAB5":1.1055961310816764,"IMAB5P":1.7924745467478687,"IBOV":0.983896,"IFIX":1.027818,"IPCA":0.57,"USDBRL":3.9453,"SP500TR":4.048931,"NDX":5.457413},{"m":"2019-05","CDI":0.5430424944385503,"IMAB":3.663998117655942,"IMAB5":1.3854142488544552,"IMAB5P":5.198951177926081,"IBOV":0.702612,"IFIX":1.763639,"IPCA":0.13,"USDBRL":3.9407,"SP500TR":-6.354803,"NDX":-8.398167},{"m":"2019-06","CDI":0.46881795441464647,"IMAB":3.734452978307412,"IMAB5":1.715969865150857,"IMAB5P":5.058860520445108,"IBOV":4.057371,"IFIX":2.87579,"IPCA":0.01,"USDBRL":3.8322,"SP500TR":7.047671,"NDX":7.619573},{"m":"2019-07","CDI":0.5677961915006913,"IMAB":1.2872479390801939,"IMAB5":0.9740594610142095,"IMAB5P":1.5094171143793522,"IBOV":0.836836,"IFIX":1.273752,"IPCA":0.19,"USDBRL":3.7649,"SP500TR":1.437311,"NDX":2.316489},{"m":"2019-08","CDI":0.5017194899630484,"IMAB":-0.40187986078775717,"IMAB5":0.04978172926251023,"IMAB5P":-0.7688728654903554,"IBOV":-0.665461,"IFIX":-0.107537,"IPCA":0.11,"USDBRL":4.1385,"SP500TR":-1.584136,"NDX":-2.010246},{"m":"2019-09","CDI":0.4637599908109413,"IMAB":2.8612487717294632,"IMAB5":1.739433041549887,"IMAB5P":3.72626109729568,"IBOV":3.570202,"IFIX":1.037758,"IPCA":-0.04,"USDBRL":4.1644,"SP500TR":1.871067,"NDX":0.759982},{"m":"2019-10","CDI":0.4792640983502183,"IMAB":3.3626976039567325,"IMAB5":1.6520376264345549,"IMAB5P":4.666063381045915,"IBOV":2.362406,"IFIX":4.013024,"IPCA":0.1,"USDBRL":4.0041,"SP500TR":2.165901,"NDX":4.314885},{"m":"2019-11","CDI":0.38038559813271533,"IMAB":-2.4545621312016985,"IMAB5":-0.2821405437800073,"IMAB5P":-4.071331169145164,"IBOV":0.945208,"IFIX":3.520083,"IPCA":0.51,"USDBRL":4.224,"SP500TR":3.629905,"NDX":3.956659},{"m":"2019-12","CDI":0.37470387078872847,"IMAB":2.0055781789475757,"IMAB5":1.2351815226517848,"IMAB5P":2.60361944285612,"IBOV":6.848226,"IFIX":10.632953,"IPCA":1.15,"USDBRL":4.0307,"SP500TR":3.018281,"NDX":3.9196},{"m":"2020-01","CDI":0.3766333675290445,"IMAB":0.26135712072152817,"IMAB5":0.5564928615207743,"IMAB5P":0.034711529366693306,"IBOV":-1.629785,"IFIX":-3.76222,"IPCA":0.21,"USDBRL":4.2695,"SP500TR":-0.039213,"NDX":2.95932},{"m":"2020-02","CDI":0.293728631555501,"IMAB":0.44940523147205536,"IMAB5":0.6420050018720369,"IMAB5P":0.31732800501451663,"IBOV":-8.429107,"IFIX":-3.687347,"IPCA":0.25,"USDBRL":4.4987,"SP500TR":-8.231873,"NDX":-5.890887},{"m":"2020-03","CDI":0.33836914846629984,"IMAB":-6.972148524325473,"IMAB5":-1.7548323569949842,"IMAB5P":-10.930282885127573,"IBOV":-29.90433,"IFIX":-15.848182,"IPCA":0.07,"USDBRL":5.1987,"SP500TR":-12.35135,"NDX":-7.661819},{"m":"2020-04","CDI":0.2849249027840228,"IMAB":1.3142262706549168,"IMAB5":0.48817048388922757,"IMAB5P":2.014767216456459,"IBOV":10.252197,"IFIX":4.391163,"IPCA":-0.31,"USDBRL":5.427,"SP500TR":12.819402,"NDX":15.19178},{"m":"2020-05","CDI":0.23580961930711464,"IMAB":1.5183731188866512,"IMAB5":2.120395332469971,"IMAB5P":1.0227969259697822,"IBOV":8.566702,"IFIX":2.07634,"IPCA":-0.38,"USDBRL":5.4263,"SP500TR":4.762744,"NDX":6.166545},{"m":"2020-06","CDI":0.21233217736713605,"IMAB":2.0481839651610656,"IMAB5":1.1168896622560487,"IMAB5P":2.843447177973757,"IBOV":8.756297,"IFIX":5.591343,"IPCA":0.26,"USDBRL":5.476,"SP500TR":1.988819,"NDX":6.292893},{"m":"2020-07","CDI":0.19434641302638056,"IMAB":4.386074068902257,"IMAB5":0.9897264187989085,"IMAB5P":7.324502755466056,"IBOV":8.265059,"IFIX":-2.60701,"IPCA":0.36,"USDBRL":5.2033,"SP500TR":5.638519,"NDX":7.374632},{"m":"2020-08","CDI":0.1598895978929482,"IMAB":-1.7974684716032363,"IMAB5":0.42637327410182113,"IMAB5P":-3.62246187366696,"IBOV":-3.442827,"IFIX":1.792091,"IPCA":0.24,"USDBRL":5.4713,"SP500TR":7.18798,"NDX":11.047438},{"m":"2020-09","CDI":0.15696620595304633,"IMAB":-1.51180658519241,"IMAB5":-0.12354176174916853,"IMAB5P":-2.599275185934391,"IBOV":-4.796026,"IFIX":0.459365,"IPCA":0.64,"USDBRL":5.6407,"SP500TR":-3.799716,"NDX":-5.719245},{"m":"2020-10","CDI":0.15696620595304633,"IMAB":0.21195422168425182,"IMAB5":0.2009477877502608,"IMAB5P":0.21988960092462762,"IBOV":-0.688115,"IFIX":-1.006125,"IPCA":0.86,"USDBRL":5.7718,"SP500TR":-2.659268,"NDX":-3.197648},{"m":"2020-11","CDI":0.14948604084066286,"IMAB":1.999745972141298,"IMAB5":1.319834195167724,"IMAB5P":2.585959615276767,"IBOV":15.902649,"IFIX":1.510792,"IPCA":0.89,"USDBRL":5.3317,"SP500TR":10.946366,"NDX":10.995889},{"m":"2020-12","CDI":0.1644469297589657,"IMAB":4.853313768884582,"IMAB5":1.829638164680314,"IMAB5P":7.509836555078708,"IBOV":9.297099,"IFIX":2.192939,"IPCA":1.35,"USDBRL":5.1967,"SP500TR":3.844857,"NDX":5.05334},{"m":"2021-01","CDI":0.14948604084066286,"IMAB":-0.851446523334054,"IMAB5":0.1059025601608754,"IMAB5P":-1.6874164260004765,"IBOV":-3.318586,"IFIX":0.324025,"IPCA":0.25,"USDBRL":5.4759,"SP500TR":-1.009625,"NDX":0.287855},{"m":"2021-02","CDI":0.13452738652959262,"IMAB":-1.516790950715774,"IMAB5":-0.5966545709874538,"IMAB5P":-2.3277155409199723,"IBOV":-4.373414,"IFIX":0.24588,"IPCA":0.86,"USDBRL":5.5302,"SP500TR":2.757454,"NDX":-0.123319},{"m":"2021-03","CDI":0.20107988327939808,"IMAB":-0.4610011702121164,"IMAB5":0.3430698223935824,"IMAB5P":-1.1696290165558731,"IBOV":5.996764,"IFIX":-1.377432,"IPCA":0.93,"USDBRL":5.6973,"SP500TR":4.379561,"NDX":1.409821},{"m":"2021-04","CDI":0.20778480243350828,"IMAB":0.6510772499380035,"IMAB5":0.8743383528487136,"IMAB5P":0.4530671987578616,"IBOV":1.937793,"IFIX":0.505134,"IPCA":0.31,"USDBRL":5.4036,"SP500TR":5.336903,"NDX":5.876506},{"m":"2021-05","CDI":0.27032626398217907,"IMAB":1.058040588224518,"IMAB5":0.6900634615823575,"IMAB5P":1.382875069156908,"IBOV":6.158343,"IFIX":-1.561959,"IPCA":0.83,"USDBRL":5.2322,"SP500TR":0.698413,"NDX":-1.257146},{"m":"2021-06","CDI":0.3077789683316512,"IMAB":0.4203319754612078,"IMAB5":-0.13026921896805987,"IMAB5P":0.8287450761270243,"IBOV":0.464229,"IFIX":-2.186078,"IPCA":0.53,"USDBRL":5.0022,"SP500TR":2.334548,"NDX":6.34413},{"m":"2021-07","CDI":0.3556161780191802,"IMAB":-0.37337816064438867,"IMAB5":0.02853705077932034,"IMAB5P":-0.7631522110600475,"IBOV":-3.943852,"IFIX":2.512986,"IPCA":0.96,"USDBRL":5.1216,"SP500TR":2.375432,"NDX":2.783278},{"m":"2021-08","CDI":0.42795247734248587,"IMAB":-1.0896104087386282,"IMAB5":0.15123853188669933,"IMAB5P":-2.219650907553139,"IBOV":-2.479261,"IFIX":-2.6302,"IPCA":0.87,"USDBRL":5.1433,"SP500TR":3.040565,"NDX":4.161855},{"m":"2021-09","CDI":0.44199933223521004,"IMAB":-0.13305486132798583,"IMAB5":1.0016209713859192,"IMAB5P":-1.259503799372197,"IBOV":-6.56833,"IFIX":-1.242618,"IPCA":1.16,"USDBRL":5.4394,"SP500TR":-4.650938,"NDX":-5.730076},{"m":"2021-10","CDI":0.4859961025168724,"IMAB":-2.5441834552003884,"IMAB5":-1.2356062067127138,"IMAB5P":-3.874326037390985,"IBOV":-6.738557,"IFIX":-1.472565,"IPCA":1.25,"USDBRL":5.643,"SP500TR":7.00613,"NDX":7.902516},{"m":"2021-11","CDI":0.5867490939004627,"IMAB":3.4664899685309614,"IMAB5":2.5007663641640754,"IMAB5P":4.474679684423832,"IBOV":-1.531642,"IFIX":-3.635711,"IPCA":0.95,"USDBRL":5.6199,"SP500TR":-0.692876,"NDX":1.800894},{"m":"2021-12","CDI":0.7690830818633421,"IMAB":0.1770255796305964,"IMAB5":0.7386016922898975,"IMAB5P":-0.3872671310318987,"IBOV":2.852355,"IFIX":8.780251,"IPCA":0.73,"USDBRL":5.5805,"SP500TR":4.481642,"NDX":1.141306},{"m":"2022-01","CDI":0.7322703246089635,"IMAB":-0.6867772418584384,"IMAB5":0.16044895515210378,"IMAB5P":-1.559210237466535,"IBOV":6.984258,"IFIX":-0.993657,"IPCA":0.54,"USDBRL":5.3574,"SP500TR":-5.174685,"NDX":-8.517301},{"m":"2022-02","CDI":0.7550409870388908,"IMAB":0.5445298699275236,"IMAB5":1.0625553903591989,"IMAB5P":0.010178721968268079,"IBOV":0.890315,"IFIX":-1.288118,"IPCA":1.01,"USDBRL":5.1394,"SP500TR":-2.994215,"NDX":-4.636557},{"m":"2022-03","CDI":0.9270538628930902,"IMAB":3.0709268489758745,"IMAB5":2.6075961898379685,"IMAB5P":3.558983670861071,"IBOV":6.060785,"IFIX":1.416194,"IPCA":1.62,"USDBRL":4.7378,"SP500TR":3.712999,"NDX":4.218912},{"m":"2022-04","CDI":0.834320523721388,"IMAB":0.8310544119749519,"IMAB5":1.5560248574419955,"IMAB5P":0.07846203003718522,"IBOV":-10.102623,"IFIX":1.190301,"IPCA":1.06,"USDBRL":4.9191,"SP500TR":-8.720158,"NDX":-13.368546},{"m":"2022-05","CDI":1.0345923015313563,"IMAB":0.9649394403981715,"IMAB5":0.7818960139985176,"IMAB5P":1.1587660930550747,"IBOV":3.220684,"IFIX":0.262703,"IPCA":0.47,"USDBRL":4.7289,"SP500TR":0.183395,"NDX":-1.654636},{"m":"2022-06","CDI":1.0153156089369508,"IMAB":-0.3637468351916695,"IMAB5":0.3342619002633551,"IMAB5P":-1.103614707019962,"IBOV":-11.50292,"IFIX":-0.880356,"IPCA":0.67,"USDBRL":5.238,"SP500TR":-8.254361,"NDX":-9.004674},{"m":"2022-07","CDI":1.0348424349291951,"IMAB":-0.8772846483735441,"IMAB5":0.010928024808731784,"IMAB5P":-1.8357437936646348,"IBOV":4.691139,"IFIX":0.661034,"IPCA":-0.68,"USDBRL":5.1884,"SP500TR":9.220444,"NDX":12.554635},{"m":"2022-08","CDI":1.1693612800063313,"IMAB":1.104926055098976,"IMAB5":0.0005291104954840975,"IMAB5P":2.4854520427385562,"IBOV":6.163146,"IFIX":5.761345,"IPCA":-0.36,"USDBRL":5.179,"SP500TR":-4.078136,"NDX":-5.220428},{"m":"2022-09","CDI":1.0719822473548524,"IMAB":1.4790202400221553,"IMAB5":0.4226434621283248,"IMAB5P":2.3946064082925433,"IBOV":0.469226,"IFIX":0.489546,"IPCA":-0.29,"USDBRL":5.4066,"SP500TR":-9.209949,"NDX":-10.599799},{"m":"2022-10","CDI":1.0206758664957682,"IMAB":1.2325382983338962,"IMAB5":1.9149763643100837,"IMAB5P":0.6523640445126544,"IBOV":5.452985,"IFIX":0.021733,"IPCA":0.59,"USDBRL":5.257,"SP500TR":8.096129,"NDX":3.959},{"m":"2022-11","CDI":1.0206758664957682,"IMAB":-0.7928710520257898,"IMAB5":-0.3330547667847017,"IMAB5P":-1.1779808702225503,"IBOV":-3.060289,"IFIX":-4.15317,"IPCA":0.41,"USDBRL":5.2941,"SP500TR":5.588473,"NDX":5.475301},{"m":"2022-12","CDI":1.1233146856986398,"IMAB":-0.1945688044431848,"IMAB5":0.9403868685815553,"IMAB5P":-1.1910207796184014,"IBOV":-2.446002,"IFIX":-0.00279,"IPCA":0.62,"USDBRL":5.2177,"SP500TR":-5.761466,"NDX":-9.063129},{"m":"2023-01","CDI":1.1233146856986398,"IMAB":-0.0008464377724282102,"IMAB5":1.3963968853923259,"IMAB5P":-1.2612765745306564,"IBOV":3.368072,"IFIX":-1.604043,"IPCA":0.53,"USDBRL":5.0993,"SP500TR":6.283426,"NDX":10.623359},{"m":"2023-02","CDI":0.9181412243290277,"IMAB":1.2816952713578633,"IMAB5":1.4073095929615587,"IMAB5P":1.165246420645416,"IBOV":-7.492347,"IFIX":-0.451945,"IPCA":0.84,"USDBRL":5.2078,"SP500TR":-2.439979,"NDX":-0.494215},{"m":"2023-03","CDI":1.174673194761211,"IMAB":2.6636642461364213,"IMAB5":1.5174832550638673,"IMAB5P":3.725209519977457,"IBOV":-2.906389,"IFIX":-1.688868,"IPCA":0.71,"USDBRL":5.0804,"SP500TR":3.671432,"NDX":9.460373},{"m":"2023-04","CDI":0.9181412243290277,"IMAB":2.0203304749540907,"IMAB5":0.9022345398913556,"IMAB5P":3.029523566910264,"IBOV":2.502331,"IFIX":3.52305,"IPCA":0.61,"USDBRL":5.0007,"SP500TR":1.560888,"NDX":0.490395},{"m":"2023-05","CDI":1.1233146856986398,"IMAB":1.5583390079382475,"IMAB5":0.2433073652776674,"IMAB5P":2.697113530461759,"IBOV":3.737795,"IFIX":5.430984,"IPCA":0.23,"USDBRL":5.0959,"SP500TR":0.434689,"NDX":7.610602},{"m":"2023-06","CDI":1.0719822473548524,"IMAB":2.391551,"IMAB5":1.051101,"IMAB5P":3.37,"IBOV":9.001637,"IFIX":4.707545,"IPCA":-0.08,"USDBRL":4.8192,"SP500TR":6.607552,"NDX":6.490208},{"m":"2023-07","CDI":1.0719822473548524,"IMAB":0.808472,"IMAB5":0.974472,"IMAB5P":0.726124,"IBOV":3.265372,"IFIX":1.326648,"IPCA":0.12,"USDBRL":4.7415,"SP500TR":3.21245,"NDX":3.806457},{"m":"2023-08","CDI":1.1374956476198017,"IMAB":-0.376265,"IMAB5":0.61156,"IMAB5P":-1.265952,"IBOV":-5.085303,"IFIX":0.488868,"IPCA":0.23,"USDBRL":4.9219,"SP500TR":-1.59211,"NDX":-1.624229},{"m":"2023-09","CDI":0.9729017544111374,"IMAB":-0.945681,"IMAB5":0.133124,"IMAB5P":-1.923276,"IBOV":0.711376,"IFIX":0.201381,"IPCA":0.26,"USDBRL":5.0076,"SP500TR":-4.767814,"NDX":-5.069521},{"m":"2023-10","CDI":0.9975672238483169,"IMAB":-0.655788,"IMAB5":-0.311203,"IMAB5P":-0.976827,"IBOV":-2.935268,"IFIX":-1.974976,"IPCA":0.24,"USDBRL":5.0575,"SP500TR":-2.102694,"NDX":-2.075807},{"m":"2023-11","CDI":0.9159878255821985,"IMAB":2.624288,"IMAB5":1.80366,"IMAB5P":3.394186,"IBOV":12.539323,"IFIX":0.661026,"IPCA":0.28,"USDBRL":4.9355,"SP500TR":9.132586,"NDX":10.67393},{"m":"2023-12","CDI":0.8945247967375058,"IMAB":2.750711,"IMAB5":1.46201,"IMAB5P":3.94297,"IBOV":5.38291,"IFIX":4.245788,"IPCA":0.56,"USDBRL":4.8413,"SP500TR":4.543068,"NDX":5.505811},{"m":"2024-01","CDI":0.9666901743658141,"IMAB":-0.449476,"IMAB5":0.67853,"IMAB5P":-1.466967,"IBOV":-4.794089,"IFIX":0.666781,"IPCA":0.42,"USDBRL":4.9535,"SP500TR":1.680409,"NDX":1.850183},{"m":"2024-02","CDI":0.8002004357681836,"IMAB":0.549553,"IMAB5":0.593295,"IMAB5P":0.511515,"IBOV":0.992342,"IFIX":0.794658,"IPCA":0.83,"USDBRL":4.9833,"SP500TR":5.339588,"NDX":5.290288},{"m":"2024-03","CDI":0.8316737660555074,"IMAB":0.077848,"IMAB5":0.770188,"IMAB5P":-0.551633,"IBOV":-0.708355,"IFIX":1.433036,"IPCA":0.16,"USDBRL":4.9962,"SP500TR":3.217469,"NDX":1.168486},{"m":"2024-04","CDI":0.8874331113757794,"IMAB":-1.614493,"IMAB5":-0.202919,"IMAB5P":-2.911787,"IBOV":-1.703205,"IFIX":-0.77344,"IPCA":0.38,"USDBRL":5.1718,"SP500TR":-4.084506,"NDX":-4.459128},{"m":"2024-05","CDI":0.8324420253383646,"IMAB":1.329339,"IMAB5":1.049141,"IMAB5P":1.593592,"IBOV":-3.038415,"IFIX":0.016264,"IPCA":0.46,"USDBRL":5.2416,"SP500TR":4.958518,"NDX":6.283931},{"m":"2024-06","CDI":0.7883369678362895,"IMAB":-0.967652,"IMAB5":0.39259,"IMAB5P":-2.250887,"IBOV":1.481153,"IFIX":-1.035082,"IPCA":0.21,"USDBRL":5.5589,"SP500TR":3.588177,"NDX":6.183527},{"m":"2024-07","CDI":0.9071223424248709,"IMAB":2.093626,"IMAB5":0.913971,"IMAB5P":3.236201,"IBOV":3.022649,"IFIX":0.521311,"IPCA":0.38,"USDBRL":5.6621,"SP500TR":1.217247,"NDX":-1.628012},{"m":"2024-08","CDI":0.8675116705918473,"IMAB":0.517022,"IMAB5":0.589871,"IMAB5P":0.770701,"IBOV":6.542955,"IFIX":0.855034,"IPCA":-0.02,"USDBRL":5.6562,"SP500TR":2.425636,"NDX":1.095993},{"m":"2024-09","CDI":0.835157409379228,"IMAB":-0.666224,"IMAB5":0.402766,"IMAB5P":-1.42372,"IBOV":-3.079005,"IFIX":-2.580778,"IPCA":0.44,"USDBRL":5.4481,"SP500TR":2.135705,"NDX":2.483054},{"m":"2024-10","CDI":0.9279575755079428,"IMAB":-0.650369,"IMAB5":0.739251,"IMAB5P":-1.658952,"IBOV":-1.595484,"IFIX":-3.059011,"IPCA":0.56,"USDBRL":5.7779,"SP500TR":-0.906801,"NDX":-0.848772},{"m":"2024-11","CDI":0.7929903920274706,"IMAB":0.022372,"IMAB5":0.356097,"IMAB5P":-0.226209,"IBOV":-3.118801,"IFIX":-2.106501,"IPCA":0.39,"USDBRL":6.0535,"SP500TR":5.870057,"NDX":5.228392},{"m":"2024-12","CDI":0.93143107189948,"IMAB":-2.619733,"IMAB5":-0.279702,"IMAB5P":-4.373003,"IBOV":-4.284653,"IFIX":-0.670953,"IPCA":0.52,"USDBRL":6.1923,"SP500TR":-2.383809,"NDX":0.390823},{"m":"2025-01","CDI":1.013201356414828,"IMAB":1.067,"IMAB5":1.883551,"IMAB5P":0.434287,"IBOV":4.864794,"IFIX":-3.069365,"IPCA":0.16,"USDBRL":5.8301,"SP500TR":2.784732,"NDX":2.217195},{"m":"2025-02","CDI":0.9853222624513602,"IMAB":0.504067,"IMAB5":0.650712,"IMAB5P":0.408277,"IBOV":-2.644668,"IFIX":3.338707,"IPCA":1.31,"USDBRL":5.8488,"SP500TR":-1.304764,"NDX":-2.763941},{"m":"2025-03","CDI":0.9640295622482142,"IMAB":1.843592,"IMAB5":0.545815,"IMAB5P":2.831166,"IBOV":6.07533,"IFIX":6.138434,"IPCA":0.56,"USDBRL":5.7422,"SP500TR":-5.634428,"NDX":-7.68976},{"m":"2025-04","CDI":1.0558796236773471,"IMAB":2.093753,"IMAB5":1.762894,"IMAB5P":2.334242,"IBOV":3.690655,"IFIX":3.006861,"IPCA":0.43,"USDBRL":5.6608,"SP500TR":-0.678146,"NDX":1.517603},{"m":"2025-05","CDI":1.1387758548166316,"IMAB":1.695118,"IMAB5":0.616055,"IMAB5P":2.452337,"IBOV":1.450873,"IFIX":1.442256,"IPCA":0.26,"USDBRL":5.7087,"SP500TR":6.294524,"NDX":9.043835},{"m":"2025-06","CDI":1.0970512720405834,"IMAB":1.296192,"IMAB5":0.445794,"IMAB5P":1.858788,"IBOV":1.334033,"IFIX":0.630862,"IPCA":0.24,"USDBRL":5.4571,"SP500TR":5.085244,"NDX":6.269716},{"m":"2025-07","CDI":1.275732508747951,"IMAB":-0.793192,"IMAB5":0.289049,"IMAB5P":-1.515571,"IBOV":-4.165184,"IFIX":-1.360308,"IPCA":0.26,"USDBRL":5.6021,"SP500TR":2.244268,"NDX":2.377129},{"m":"2025-08","CDI":1.1641561387977895,"IMAB":0.835576,"IMAB5":1.184931,"IMAB5P":0.536715,"IBOV":6.275753,"IFIX":1.163434,"IPCA":-0.11,"USDBRL":5.4264,"SP500TR":2.027178,"NDX":0.849771},{"m":"2025-09","CDI":1.2199289497186738,"IMAB":0.537763,"IMAB5":0.656079,"IMAB5P":0.442681,"IBOV":3.404528,"IFIX":3.252828,"IPCA":0.48,"USDBRL":5.3186,"SP500TR":3.649995,"NDX":5.400588},{"m":"2025-10","CDI":1.275732508747951,"IMAB":1.045568,"IMAB5":1.025659,"IMAB5P":1.059312,"IBOV":2.258942,"IFIX":0.115338,"IPCA":0.09,"USDBRL":5.3843,"SP500TR":2.341371,"NDX":4.773667},{"m":"2025-11","CDI":1.0527026935209127,"IMAB":2.041145,"IMAB5":1.075948,"IMAB5P":2.802225,"IBOV":6.373995,"IFIX":1.859705,"IPCA":0.18,"USDBRL":5.3338,"SP500TR":0.245087,"NDX":-1.636778},{"m":"2025-12","CDI":1.2199289497186738,"IMAB":0.306196,"IMAB5":0.947989,"IMAB5P":-0.192784,"IBOV":1.29076,"IFIX":3.138993,"IPCA":0.33,"USDBRL":5.5024,"SP500TR":0.061209,"NDX":-0.727509},{"m":"2026-01","CDI":1.1641561387977895,"IMAB":0.998522,"IMAB5":1.204497,"IMAB5P":0.835716,"IBOV":12.560735,"IFIX":2.269483,"IPCA":0.33,"USDBRL":5.2301,"SP500TR":1.450024,"NDX":1.198189},{"m":"2026-02","CDI":0.9970220253081363,"IMAB":1.793998,"IMAB5":1.217742,"IMAB5P":2.239206,"IBOV":4.09292,"IFIX":1.320905,"IPCA":0.7,"USDBRL":5.1495,"SP500TR":-0.759986,"NDX":-2.318185},{"m":"2026-03","CDI":1.2120535925043807,"IMAB":0.165932,"IMAB5":1.394111,"IMAB5P":-0.775793,"IBOV":-0.701923,"IFIX":-1.058796,"IPCA":0.88,"USDBRL":5.2194,"SP500TR":-4.979508,"NDX":-4.88721},{"m":"2026-04","CDI":1.0900584045334005,"IMAB":1.814414,"IMAB5":1.317031,"IMAB5P":2.203493,"IBOV":-0.076922,"IFIX":1.533108,"IPCA":0.67,"USDBRL":4.9886,"SP500TR":10.492657,"NDX":15.635636},{"m":"2026-05","CDI":1.0734353626207227,"IMAB":0.312069,"IMAB5":0.967677,"IMAB5P":-0.197471,"IBOV":-7.223105,"IFIX":-1.333109,"IPCA":0.58,"USDBRL":5.0569,"SP500TR":5.263305,"NDX":10.494857}]}</script>
+<script>
+"use strict";
+(function(){
+  var PANEL = JSON.parse(document.getElementById('PANEL').textContent);
+  var ROWS = PANEL.rows;
+  // asset registry: key -> {label, type}  type: 'ret' monthly %, 'index' (IPCA as asset), 'fx'
+  var ASSETS = [
+    {k:'CDI',   l:'CDI (cash)'},
+    {k:'IMAB',  l:'IMA-B'},
+    {k:'IMAB5', l:'IMA-B5 (short)'},
+    {k:'IMAB5P',l:'IMA-B5+ (long)'},
+    {k:'IBOV',  l:'IBOV (equity)'},
+    {k:'IFIX',  l:'IFIX (FIIs)'},
+    {k:'IPCA',  l:'IPCA (inflation)'},
+    {k:'USDBRL',l:'USD/BRL (currency)'},
+    {k:'SP500TR',l:'S&P 500 (TR, USD)'},
+    {k:'NDX',   l:'Nasdaq-100 (price, USD)'}
+  ];
+  var LBL = {}; ASSETS.forEach(function(a){LBL[a.k]=a.l;});
+  var SHORT = {CDI:'CDI',IMAB:'IMA-B',IMAB5:'IMA-B5',IMAB5P:'IMA-B5+',IBOV:'IBOV',IFIX:'IFIX',IPCA:'IPCA',USDBRL:'USD/BRL',SP500TR:'S&P 500',NDX:'Nasdaq-100'};
+  var COL_RED='#c82c3e', COL_GREEN='#157346', COL_ACCENT='#2563c9', COL_INK='#1b2430', COL_FAINT='#93a0b0', COL_LINE='#dde4ec', COL_MUTED='#5d6b7d';
+
+  var state = {a:'IBOV', b:'CDI', space:'nominal', h:10, start:'2004-01'};
+
+  // ---- build per-asset monthly RETURN series in the chosen space ----
+  // returns object {key: [monthly fractional return or null]} aligned to ROWS
+  function monthlyReturn(row, key){
+    // native monthly % series
+    if(key==='IPCA'){ return row.IPCA; }                 // already monthly %
+    if(key==='USDBRL'){ return null; }                   // handled as level -> ret below
+    var v = row[key];
+    return v;                                            // monthly % (nominal BRL for BR, USD for US)
+  }
+  // USD/BRL monthly return from levels
+  function fxRet(i){
+    if(i===0) return null;
+    var p0=ROWS[i-1].USDBRL, p1=ROWS[i].USDBRL;
+    if(p0==null||p1==null) return null;
+    return (p1/p0 - 1)*100;
+  }
+  // Convert a BR nominal monthly % return into the requested space.
+  // real: deflate by IPCA; usd: add USD/BRL depreciation (convert BRL TR to USD).
+  // US assets (SP500TR,NDX) are already USD: in 'usd' leave as-is; in 'nominal'/'real' we keep them
+  // labeled but they are USD returns (flagged). For cross-asset BR-vs-US we keep simple: in usd space all comparable.
+  function spaceReturn(i, key, space){
+    var row = ROWS[i];
+    var isUS = (key==='SP500TR'||key==='NDX');
+    var isFX = (key==='USDBRL');
+    var r;
+    if(isFX){ r = fxRet(i); }
+    else { r = monthlyReturn(row, key); }
+    if(r==null) return null;
+    if(space==='nominal'){ return r; }
+    if(space==='real'){
+      var ip = row.IPCA;
+      if(ip==null) return null;
+      if(key==='IPCA') return 0;                  // IPCA in real terms = 0 by construction
+      return ((1+r/100)/(1+ip/100) - 1)*100;
+    }
+    if(space==='usd'){
+      // US assets already USD; FX return already USD-relevant; BR assets: convert BRL TR to USD
+      if(isUS) return r;
+      if(isFX) return r;                          // USD/BRL change is the FX itself
+      var f = fxRet(i);
+      if(f==null) return null;
+      // 1 BRL grows (1+r); USD value changes by /(1+fx) since USDBRL up = BRL weaker
+      return ((1+r/100)/(1+f/100) - 1)*100;
+    }
+    return r;
+  }
+
+  function startIndex(start){
+    for(var i=0;i<ROWS.length;i++){ if(ROWS[i].m>=start) return i; }
+    return 0;
+  }
+
+  // compound a space-return series over [i, i+w)
+  function cumWindow(arr, i, w){
+    var p=1;
+    for(var j=i;j<i+w;j++){ var v=arr[j]; if(v==null) return null; p*=(1+v/100); }
+    return p;
+  }
+
+  // core compute: returns {winrate,n,mean,median,worst,best,excess:[],winA,space,h}
+  function compute(a,b,space,h,start){
+    var w=h*12, s=startIndex(start);
+    var arrA=new Array(ROWS.length), arrB=new Array(ROWS.length);
+    for(var i=0;i<ROWS.length;i++){ arrA[i]=spaceReturn(i,a,space); arrB[i]=spaceReturn(i,b,space); }
+    var excess=[], wins=0;
+    for(var k=s;k+w<=ROWS.length;k++){
+      var ca=cumWindow(arrA,k,w), cb=cumWindow(arrB,k,w);
+      if(ca==null||cb==null) continue;
+      var ga=Math.pow(ca,12/w)-1, gb=Math.pow(cb,12/w)-1;
+      excess.push((ga-gb)*100);
+      if(ca>cb) wins++;
+    }
+    var n=excess.length;
+    if(!n) return {n:0};
+    var srt=excess.slice().sort(function(x,y){return x-y;});
+    var sum=0; for(var z=0;z<n;z++) sum+=excess[z];
+    var med = n%2 ? srt[(n-1)/2] : (srt[n/2-1]+srt[n/2])/2;
+    return {winrate:100*wins/n, n:n, mean:sum/n, median:med, worst:srt[0], best:srt[n-1], excess:excess, wins:wins};
+  }
+
+  // ---------- SVG helpers ----------
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+  function histSVG(excess){
+    var W=560,H=230,pl=38,pr=14,pt=18,pb=34,pw=W-pl-pr,ph=H-pt-pb;
+    var n=excess.length;
+    var lo=Math.floor(Math.min.apply(null,excess)), hi=Math.ceil(Math.max.apply(null,excess));
+    if(lo===hi){lo-=1;hi+=1;}
+    var nb=Math.min(15, Math.max(7, Math.round(Math.sqrt(n))+3));
+    var step=(hi-lo)/nb, bins=new Array(nb).fill(0);
+    excess.forEach(function(e){var k=Math.min(nb-1,Math.floor((e-lo)/step)); if(k<0)k=0; bins[k]++;});
+    var mx=Math.max.apply(null,bins), bw=pw/nb, parts=[];
+    parts.push('<line x1="'+pl+'" y1="'+(pt+ph)+'" x2="'+(pl+pw)+'" y2="'+(pt+ph)+'" stroke="'+COL_LINE+'"/>');
+    for(var i=0;i<nb;i++){
+      var bx=pl+i*bw, bh=mx?bins[i]/mx*ph:0, by=pt+ph-bh;
+      var c=lo+step*(i+0.5)>=0?COL_GREEN:COL_RED;
+      parts.push('<rect class="hist-bar" x="'+(bx+1.5).toFixed(1)+'" y="'+by.toFixed(1)+'" width="'+(bw-3).toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="1.5" fill="'+c+'" opacity="0.82"><title>'+bins[i]+' windows, '+(lo+step*i).toFixed(1)+' to '+(lo+step*(i+1)).toFixed(1)+'%/yr</title></rect>');
+      if(bins[i]) parts.push('<text x="'+(bx+bw/2).toFixed(1)+'" y="'+(by-3).toFixed(1)+'" text-anchor="middle" font-size="8.5" fill="'+COL_MUTED+'">'+bins[i]+'</text>');
+    }
+    var zx=pl+((0-lo)/(step*nb))*pw;
+    if(zx>=pl&&zx<=pl+pw){
+      parts.push('<line x1="'+zx.toFixed(1)+'" y1="'+pt+'" x2="'+zx.toFixed(1)+'" y2="'+(pt+ph)+'" stroke="'+COL_INK+'" stroke-width="1" stroke-dasharray="3 3"/>');
+      parts.push('<text x="'+zx.toFixed(1)+'" y="'+(pt-6)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+COL_INK+'">0</text>');
+    }
+    for(var t=0;t<=nb;t+=3){var tx=pl+t*bw,val=lo+step*t;parts.push('<text x="'+tx.toFixed(1)+'" y="'+(pt+ph+15)+'" text-anchor="middle" font-size="8.5" fill="'+COL_FAINT+'">'+(val>=0?'+':'')+val.toFixed(0)+'</text>');}
+    parts.push('<text x="'+(pl+pw/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="9" fill="'+COL_MUTED+'">Annualized excess CAGR (% / yr)</text>');
+    return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Excess return histogram">'+parts.join('')+'</svg>';
+  }
+  function horizonSVG(a,b,space,start){
+    var hs=[1,3,5,10], W=560,H=150,pl=34,pr=14,pt=14,pb=28,pw=W-pl-pr,ph=H-pt-pb;
+    var vals=hs.map(function(h){var r=compute(a,b,space,h,start);return r.n?r.winrate:null;});
+    var parts=[];
+    [0,25,50,75,100].forEach(function(g){var gy=pt+ph-(g/100)*ph;parts.push('<line x1="'+pl+'" y1="'+gy.toFixed(1)+'" x2="'+(pl+pw)+'" y2="'+gy.toFixed(1)+'" stroke="'+COL_LINE+'"'+(g===50?' stroke-dasharray="3 3"':'')+'/>');parts.push('<text x="'+(pl-6)+'" y="'+(gy+3).toFixed(1)+'" text-anchor="end" font-size="8.5" fill="'+COL_FAINT+'">'+g+'</text>');});
+    var bw=pw/hs.length;
+    vals.forEach(function(v,i){
+      if(v==null) return;
+      var bx=pl+i*bw+bw*0.22, bwi=bw*0.56, bh=v/100*ph, by=pt+ph-bh;
+      var c=v>=50?COL_GREEN:COL_RED;
+      parts.push('<rect x="'+bx.toFixed(1)+'" y="'+by.toFixed(1)+'" width="'+bwi.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="2.5" fill="'+c+'" opacity="0.85"/>');
+      parts.push('<text x="'+(bx+bwi/2).toFixed(1)+'" y="'+(by-4).toFixed(1)+'" text-anchor="middle" font-size="10" font-weight="800" fill="'+c+'">'+v.toFixed(0)+'%</text>');
+      parts.push('<text x="'+(bx+bwi/2).toFixed(1)+'" y="'+(pt+ph+16)+'" text-anchor="middle" font-size="9.5" font-weight="600" fill="'+COL_MUTED+'">'+hs[i]+'Y</text>');
+    });
+    return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Win rate by horizon">'+parts.join('')+'</svg>';
+  }
+  function winbarSVG(pct,col){return '<svg viewBox="0 0 300 18" width="100%" preserveAspectRatio="none" role="img" aria-label="Win rate '+pct.toFixed(0)+' percent"><rect x="0" y="0" width="300" height="18" rx="4" fill="#eef2f6"/><rect x="0" y="0" width="'+(pct*3).toFixed(1)+'" height="18" rx="4" fill="'+col+'"/></svg>';}
+
+  // ---------- render ----------
+  function spaceLabel(s){return s==='nominal'?'nominal BRL':s==='real'?'real (IPCA)':'USD';}
+  function fmtPct(x){return (x>=0?'+':'')+x.toFixed(2)+'%';}
+  function render(){
+    var r=compute(state.a,state.b,state.space,state.h,state.start);
+    var elB=document.getElementById('vd-big');
+    var startLabel = labelMonth(state.start);
+    document.getElementById('vd-eyebrow').textContent='Matchup verdict · '+state.h+'-year windows · '+spaceLabel(state.space);
+    if(!r.n){
+      document.getElementById('vd-headline').innerHTML='Not enough data for this combination';
+      elB.innerHTML='&mdash;';
+      document.getElementById('vd-sub').textContent='Try a shorter horizon or an earlier start date — the selected series may begin after your window needs it.';
+      document.getElementById('winbar').innerHTML='';
+      ['st-mean','st-median','st-worst','st-best','st-n'].forEach(function(id){document.getElementById(id).textContent='—';});
+      document.getElementById('hist').innerHTML='<svg viewBox="0 0 560 120" width="100%"><text x="280" y="60" text-anchor="middle" font-size="12" fill="'+COL_FAINT+'">No valid windows.</text></svg>';
+      document.getElementById('horizon-chart').innerHTML='';
+      return r;
+    }
+    var col = r.winrate>=50?COL_GREEN:COL_RED;
+    var verb = r.winrate>=50?'beat':'beat';
+    var emph = r.winrate>=50? (r.winrate>=85?'in':'in') : 'in only';
+    document.getElementById('vd-headline').innerHTML='<b>'+SHORT[state.a]+'</b> '+verb+' <b>'+SHORT[state.b]+'</b> '+emph;
+    elB.innerHTML=r.winrate.toFixed(1)+'<span class="unit">%</span>';
+    elB.style.color=col;
+    document.getElementById('vd-sub').innerHTML='of '+r.n+' rolling '+state.h+'-year windows since '+startLabel+'. '+narrative(r,state);
+    document.getElementById('winbar').innerHTML=winbarSVG(r.winrate,col);
+    setStat('st-mean',r.mean,true);
+    setStat('st-median',r.median,true);
+    setStat('st-worst',r.worst,true);
+    setStat('st-best',r.best,true);
+    var n=document.getElementById('st-n'); n.textContent=r.n; n.className='v neu';
+    // histogram
+    document.getElementById('hist-title').textContent='Distribution of excess return — '+SHORT[state.a]+' minus '+SHORT[state.b]+' ('+state.h+'Y, '+spaceLabel(state.space)+')';
+    document.getElementById('hist').innerHTML=histSVG(r.excess);
+    document.getElementById('horizon-chart').innerHTML=horizonSVG(state.a,state.b,state.space,state.start);
+    document.getElementById('hist-src').textContent='Source: benchmarks_monthly.csv + macro_monthly.csv (BCB/ANBIMA/B3); '+r.n+' overlapping windows, computed in-browser.';
+    return r;
+  }
+  function setStat(id,val,perYr){
+    var el=document.getElementById(id);
+    el.innerHTML=fmtPct(val)+(perYr?'<span style="font-size:11px;color:var(--faint)">/yr</span>':'');
+    el.className='v '+(val>0.001?'pos':val<-0.001?'neg':'neu');
+  }
+  function narrative(r,st){
+    var a=SHORT[st.a], b=SHORT[st.b];
+    if(r.winrate>=92) return a+' cleared '+b+' in nearly every window — a near-structural edge over this horizon.';
+    if(r.winrate>=50) return 'On balance '+a+' came out ahead, but the worst window still lost '+Math.abs(r.worst).toFixed(1)+'%/yr.';
+    if(r.winrate<=20) return 'A punishing hurdle: '+b+' compounded faster than '+a+' in most windows, by '+Math.abs(r.mean).toFixed(1)+'%/yr on average.';
+    return b+' won more often than '+a+', though the gap was modest ('+r.mean.toFixed(1)+'%/yr mean).';
+  }
+  function labelMonth(m){var mm=m.split('-');var names=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return names[parseInt(mm[1],10)]+' '+mm[0];}
+
+  // ---------- controls wiring ----------
+  function fillSelect(id,sel){
+    var s=document.getElementById(id), html='';
+    ASSETS.forEach(function(a){html+='<option value="'+a.k+'"'+(a.k===sel?' selected':'')+'>'+a.l+'</option>';});
+    s.innerHTML=html;
+  }
+  fillSelect('assetA',state.a); fillSelect('assetB',state.b);
+  document.getElementById('assetA').addEventListener('change',function(){state.a=this.value;persist();render();});
+  document.getElementById('assetB').addEventListener('change',function(){state.b=this.value;persist();render();});
+  document.getElementById('space').addEventListener('change',function(){state.space=this.value;persist();render();});
+  document.getElementById('start').addEventListener('change',function(){state.start=this.value||'2004-01';persist();render();});
+  document.querySelectorAll('#horizon button').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('#horizon button').forEach(function(b){b.setAttribute('aria-pressed','false');});
+      this.setAttribute('aria-pressed','true'); state.h=parseInt(this.dataset.h,10); persist(); render();
+    });
+  });
+  document.getElementById('swap').addEventListener('click',function(){
+    var t=state.a; state.a=state.b; state.b=t;
+    document.getElementById('assetA').value=state.a; document.getElementById('assetB').value=state.b;
+    persist(); render();
+  });
+
+  // ---------- persistence (sessionStorage + URL hash) ----------
+  function persist(){
+    try{
+      var q=state.a+'.'+state.b+'.'+state.space+'.'+state.h+'.'+state.start;
+      sessionStorage.setItem('frx',q);
+      if(history.replaceState) history.replaceState(null,'','#'+q);
+    }catch(e){}
+  }
+  function restore(){
+    var q=null;
+    try{ if(location.hash.length>1) q=decodeURIComponent(location.hash.slice(1)); else q=sessionStorage.getItem('frx'); }catch(e){}
+    if(!q) return;
+    var p=q.split('.');
+    if(p.length>=5 && LBL[p[0]] && LBL[p[1]]){
+      state.a=p[0]; state.b=p[1]; state.space=p[2]; state.h=parseInt(p[3],10)||10; state.start=p[4];
+      document.getElementById('assetA').value=state.a;
+      document.getElementById('assetB').value=state.b;
+      document.getElementById('space').value=state.space;
+      document.getElementById('start').value=state.start;
+      document.querySelectorAll('#horizon button').forEach(function(b){b.setAttribute('aria-pressed', b.dataset.h==state.h?'true':'false');});
+    }
+  }
+
+  // ---------- data tab table ----------
+  (function(){
+    var meta={CDI:['Interbank cash rate (ANBIMA)','% / mo'],IMAB:['Inflation-linked bond index (full)','% / mo'],
+      IMAB5:['Inflation-linked, ≤5y','% / mo'],IMAB5P:['Inflation-linked, >5y','% / mo'],
+      IBOV:['Ibovespa equity index (TR)','% / mo'],IFIX:['Listed real-estate funds index','% / mo'],
+      IPCA:['Headline consumer inflation','% / mo'],USDBRL:['USD/BRL PTAX, end of month','level'],
+      SP500TR:['S&P 500 total return','% / mo (USD)'],NDX:['Nasdaq-100 price','% / mo (USD)']};
+    var cov=PANEL.meta.coverage, body='';
+    ASSETS.forEach(function(a){var m=meta[a.k];body+='<tr><td>'+SHORT[a.k]+'</td><td style="text-align:left;font-weight:400;color:var(--muted)">'+m[0]+'</td><td>'+m[1]+'</td><td>'+(cov[a.k]||0)+'</td></tr>';});
+    document.getElementById('data-rows').innerHTML=body;
+  })();
+
+  // ---------- export: CSV (rolling-window excess for current view) ----------
+  function currentCSV(){
+    var r=compute(state.a,state.b,state.space,state.h,state.start);
+    var w=state.h*12, s=startIndex(state.start), lines=['window_start,window_end,'+state.a+'_cagr_pct,'+state.b+'_cagr_pct,excess_cagr_pct,A_beat_B'];
+    var arrA=[],arrB=[];
+    for(var i=0;i<ROWS.length;i++){arrA[i]=spaceReturn(i,state.a,state.space);arrB[i]=spaceReturn(i,state.b,state.space);}
+    for(var k=s;k+w<=ROWS.length;k++){
+      var ca=cumWindow(arrA,k,w),cb=cumWindow(arrB,k,w);
+      if(ca==null||cb==null) continue;
+      var ga=(Math.pow(ca,12/w)-1)*100, gb=(Math.pow(cb,12/w)-1)*100;
+      lines.push(ROWS[k].m+','+ROWS[k+w-1].m+','+ga.toFixed(4)+','+gb.toFixed(4)+','+(ga-gb).toFixed(4)+','+(ca>cb?1:0));
+    }
+    return lines.join('\n');
+  }
+  function download(name,text,type){
+    var blob=new Blob([text],{type:type||'text/plain'}), url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},50);
+  }
+  document.getElementById('export-csv').addEventListener('click',function(){
+    download('rolling_'+state.a+'_vs_'+state.b+'_'+state.h+'Y_'+state.space+'.csv',currentCSV(),'text/csv');
+  });
+
+  // ---------- export: standalone HTML (round-trip — full document with current state in URL) ----------
+  document.getElementById('export-html').addEventListener('click',function(){
+    var doc='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+    // bake current selection into the exported file's hash so it opens on this view
+    doc=doc.replace('</head>','<script>location.hash="'+state.a+'.'+state.b+'.'+state.space+'.'+state.h+'.'+state.start+'";<\/script></head>');
+    download('rolling_explorer_'+state.a+'_vs_'+state.b+'_'+state.h+'Y.html',doc,'text/html');
+  });
+
+  // ---------- boot ----------
+  document.getElementById('nojs').style.display='none';
+  restore();
+  render();
+})();
+</script>
+</body>
+</html>
