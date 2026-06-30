@@ -688,8 +688,9 @@ body.editing .edbar .ed-hint{display:inline;font-size:11px;color:#5d6b7d;backgro
 .tsf-pnav b{color:#1b2430}
 @media (max-width:560px){.tsf-charts{grid-template-columns:1fr}}
 /* fixes 2026-06-29b */
-.tsf-back{display:inline-flex;align-items:center;gap:6px;margin:18px 0 2px;font-size:12px;font-weight:700;color:#2563c9;text-decoration:none}
+.tsf-back{display:inline-flex;align-items:center;gap:6px;margin:18px 0 2px;font-size:12px;font-weight:600;color:#2563c9;text-decoration:none}
 .tsf-back:hover{text-decoration:underline}
+.tsf-rail .tsf-back{font-size:12px;font-weight:600;color:#2563c9;border-left-color:transparent}
 @media (max-width:760px){.tsf-eq{flex-wrap:wrap}.tsf-term{flex:1 1 132px;min-width:120px}}
 /* ===== FII T6 — Key subtypes (nested CSS-only tabs + per-segment snapshot) ===== */
 .tsf-tin{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
