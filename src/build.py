@@ -6,8 +6,8 @@ import os, re
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(os.path.dirname(HERE), "index.html")
 SECTIONS = os.path.join(HERE, "sections")
-ORDER = ["intro","exec","landscape","assets","portfolio","references","appendix"]
-FILES = {"intro":"01-intro.html","exec":"02-exec.html","landscape":"03-landscape.html",
+ORDER = ["cover","intro","exec","landscape","assets","portfolio","references","appendix"]
+FILES = {"cover":"00-cover.html","intro":"01-intro.html","exec":"02-exec.html","landscape":"03-landscape.html",
          "assets":"04-assets.html","portfolio":"05-portfolio.html",
          "references":"06-references.html","appendix":"07-appendix.html"}
 def read(p):

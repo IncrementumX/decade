@@ -1,0 +1,19 @@
+<section class="panel" id="panel-cover"><div class="cover"><div class="cover-brand">Decade <span class="cover-pipe">|</span> Investment Case</div><div class="cover-sub">Tax-Exempt Assets in Brazil</div><div class="cover-rule"></div><div class="cover-classes">Eduardo Dias</div><label for="ftab-intro" id="cover-open-btn" class="cover-open" role="button" tabindex="0">Open</label></div></section><script>(function(){
+var btn=document.getElementById('cover-open-btn');
+var cover=document.getElementById('panel-cover');
+var introRadio=document.getElementById('ftab-intro');
+if(!btn||!cover||!introRadio)return;
+var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function go(){
+  if(introRadio.checked)return;
+  if(reduced){introRadio.checked=true;introRadio.dispatchEvent(new Event('change',{bubbles:true}));return;}
+  cover.classList.add('cover-leaving');
+  window.setTimeout(function(){
+    introRadio.checked=true;
+    introRadio.dispatchEvent(new Event('change',{bubbles:true}));
+    cover.classList.remove('cover-leaving');
+  },300);
+}
+btn.addEventListener('click',function(e){e.preventDefault();go();});
+btn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();btn.click();}});
+})();</script>
